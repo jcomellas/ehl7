@@ -26,8 +26,6 @@
 -type segment_def() :: {segment_id(), Comment :: binary(), [element_def()]}.
 
 
-main([]) ->
-    getopt:usage(option_spec_list(), escript:script_name());
 main(Args) ->
     OptSpecList = option_spec_list(),
     case getopt:parse(OptSpecList, Args) of
@@ -320,7 +318,7 @@ get_segment_defs() ->
      %% NTE: Notes and comments
      {<<"NTE">>, <<"Notes and comments">>,
       [
-       {set_id,                                field,        [0[,       integer,   4},
+       {set_id,                                field,        [0],       integer,   4},
        {comment,                               field,        [2],       string,  512}
       ]},
      %% PID: Patient information
