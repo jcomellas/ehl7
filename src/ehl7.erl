@@ -44,6 +44,8 @@ init() ->
 -spec decode(Buffer :: binary(), [decode_option()]) -> {ok, raw_msg()} | {error, Reason :: any()}.
 decode(Buffer, Options) ->
     case raw_decode(Buffer) of
+        [] ->
+            {error, {invalid_hl7_msg, Buffer}};
         RawMsg when is_list(RawMsg) ->
             case lists:member(raw, Options) of
                 true ->
