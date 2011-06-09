@@ -84,7 +84,8 @@ decode(err, Segment) ->
 decode(evn, Segment) ->
     #evn{
         recorded_date = get_field([2], date, 14, Segment),
-        planned_event_date = get_field([3], date, 14, Segment)
+        planned_event_date = get_field([3], date, 14, Segment),
+        event_reason_code = get_field([4], string, 3, Segment)
        };
 %% @doc Decode the IN1 (Insurance) segment
 decode(in1, Segment) ->
@@ -141,11 +142,12 @@ decode(pid, Segment) ->
     #pid{
         set_id = get_field([1], integer, 4, Segment),
         patient_id = get_component([3,1,1], string, 20, Segment),
-        patient_document_id = get_component([3,1,1], string, 20, Segment),
         assigning_authority_id = get_subcomponent([3,1,4,1], string, 6, Segment),
         assigning_authority_universal_id = get_subcomponent([3,1,4,2], string, 6, Segment),
         assigning_authority_universal_id_type = get_subcomponent([3,1,4,3], string, 10, Segment),
         id_type = get_component([3,1,5], string, 2, Segment),
+        patient_document_id = get_component([3,2,1], string, 20, Segment),
+        patient_document_id_type = get_component([3,2,5], string, 2, Segment),
         last_name = get_component([5,1,1], string, 25, Segment),
         first_name = get_component([5,1,2], string, 25, Segment)
        };
@@ -264,7 +266,7 @@ decode(zau, Segment) ->
         authorization_status_text = get_component([3,1,2], string, 15, Segment),
         pre_authorization_id = get_component([4,1,1], string, 15, Segment),
         pre_authorization_date = get_field([5], string, 8, Segment),
-        copay = get_subcomponent([6,1,1,1], string, 10, Segment),
+        copay = get_subcomponent([6,1,1,1], float, 10, Segment),
         copay_currency = get_subcomponent([6,1,1,2], string, 10, Segment)
        };
 %% @doc Decode the ZIN (Additional insurance information) segment

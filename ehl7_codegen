@@ -164,15 +164,15 @@ codegen_element_decoder([], Acc) ->
 
 -spec type_spec(element_data_type(), non_neg_integer()) -> binary().
 type_spec(integer, _Length) ->
-    <<" :: integer()">>;
+    <<" :: integer() | undefined">>;
 type_spec(float, _Length) ->
-    <<" :: float()">>;
+    <<" :: float() | undefined">>;
 type_spec(date, 8) ->
-    <<" :: calendar:date()">>;
+    <<" :: calendar:date() | undefined">>;
 type_spec(date, Length) when Length > 8 ->
-    <<" :: calendar:datetime()">>;
+    <<" :: calendar:datetime() | undefined">>;
 type_spec(string, _Length) ->
-    <<" :: binary()">>.
+    <<" :: binary() | undefined">>.
 
 
 -spec file_author() -> binary().
@@ -262,7 +262,8 @@ get_segment_defs() ->
      {<<"EVN">>, <<"Event type">>,
       [
        {recorded_date,                         field,        [2],          date,     14},
-       {planned_event_date,                    field,        [3],          date,     14}
+       {planned_event_date,                    field,        [3],          date,     14},
+       {event_reason_code,                     field,        [4],          string,    3}
       ]},
      %% IN1: Insurance
      {<<"IN1">>, <<"Insurance">>,
@@ -318,14 +319,15 @@ get_segment_defs() ->
      {<<"PID">>, <<"Patient information">>,
       [
        {set_id,                                field,        [1],          integer,   4},
-       %% Repetition 0
-       {patient_id,                            component,    [3, 1, 1],    string,   20},
        %% Repetition 1
-       {patient_document_id,                   component,    [3, 1, 1],    string,   20},
+       {patient_id,                            component,    [3, 1, 1],    string,   20},
        {assigning_authority_id,                subcomponent, [3, 1, 4, 1], string,    6},
        {assigning_authority_universal_id,      subcomponent, [3, 1, 4, 2], string,    6},
        {assigning_authority_universal_id_type, subcomponent, [3, 1, 4, 3], string,   10},
        {id_type,                               component,    [3, 1, 5],    string,    2},
+       %% Repetition 2
+       {patient_document_id,                   component,    [3, 2, 1],    string,   20},
+       {patient_document_id_type,              component,    [3, 2, 5],    string,    2},
        {last_name,                             component,    [5, 1, 1],    string,   25},
        {first_name,                            component,    [5, 1, 2],    string,   25}
       ]},
@@ -336,16 +338,16 @@ get_segment_defs() ->
        {procedure_id,                          component,    [3, 1, 1],    string,   20},
        {procedure_name,                        component,    [3, 1, 2],    string,   30},
        {coding_system,                         component,    [3, 1, 3],    string,    4},
-       {date,                                  field,        [5],       date,     14}
+       {date,                                  field,        [5],          date,     14}
       ]},
      %% PRD: Provider data
      {<<"PRD">>, <<"Provider data">>,
       [
-       %% Repetition 0
+       %% Repetition 1
        {role_id,                               component,    [1, 1, 1],    string,    5},
        {role_name,                             component,    [1, 1, 2],    string,   30},
        {role_coding_system,                    component,    [1, 1, 3],    string,    7},
-       %% Repetition 1
+       %% Repetition 2
        {specialty_id,                          component,    [1, 2, 1],    string,    5},
        {specialty_name,                        component,    [1, 2, 2],    string,   30},
        {specialty_coding_system,               component,    [1, 2, 3],    string,    7},
@@ -456,7 +458,7 @@ get_segment_defs() ->
        {authorization_status_text,             component,    [3, 1, 2],    string,   15},
        {pre_authorization_id,                  component,    [4, 1, 1],    string,   15},
        {pre_authorization_date,                field,        [5],          string,    8},
-       {copay,                                 subcomponent, [6, 1, 1, 1], string,   10},
+       {copay,                                 subcomponent, [6, 1, 1, 1], float,    10},
        {copay_currency,                        subcomponent, [6, 1, 1, 2], string,   10}
       ]},
      %% ZIN: Additional insurance information

@@ -119,5 +119,10 @@ convert(<<Year:4/binary, Month:2/binary, Day:2/binary, Hour:2/binary, Min:2/bina
     {{bstr:to_integer(Year), bstr:to_integer(Month), bstr:to_integer(Day)},
      {bstr:to_integer(Hour), bstr:to_integer(Min), bstr:to_integer(Sec)}};
 convert(Value, float, _Length) ->
-    bstr:to_float(Value).
+    case bstr:member(Value, $.) of
+        true ->
+            bstr:to_float(Value);
+        false ->
+            bstr:to_integer(Value) * 1.0
+    end.
 
