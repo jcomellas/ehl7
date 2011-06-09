@@ -268,8 +268,17 @@ static int end_element(HL7_Parser *parser, HL7_Element_Type element_type)
     {
         DEBUG("adding 1 element to parent as binary\n");
 
-        /* There's no need to create a list if there is only a single element */
-        term = state->term[element_type][0];
+        /* If the element is a tuple we have to enclose it in another tuple to
+           accurately represent the hierarchy of repetitions, components and
+           subcomponents. */
+        if (enif_is_tuple(state->env, state->term[element_type][0]))
+        {
+            term = enif_make_tuple1(state->env, state->term[element_type][0]);
+        }
+        else
+        {
+            term = state->term[element_type][0];
+        }
     }
     else /* if (state->term_count[element_type] == 0) */
     {

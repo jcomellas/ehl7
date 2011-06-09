@@ -10,46 +10,94 @@
 -module(ehl7_field).
 -author('Juan Jose Comellas <jcomellas@erlar.com>').
 
--export([get_field/2, get_field/4]).
+-export([get_field/2, get_field/4,
+         get_repetition/2, get_repetition/4,
+         get_component/2, get_component/4,
+         get_subcomponent/2, get_subcomponent/4,
+         get_element/2, get_element/4]).
 
+
+-spec get_field(ehl7:field_index(), ehl7:raw_segment()) -> ehl7:field() | undefined.
+get_field(Index, Segment) ->
+    get_element(Index, Segment).
 
 -spec get_field(ehl7:field_index(), ehl7:field_data_type(), ehl7:field_length(), ehl7:raw_segment()) -> ehl7:field() | undefined.
 get_field(Index, DataType, Length, Segment) ->
-    case get_field(Index, Segment) of
+    get_element(Index, DataType, Length, Segment).
+
+
+-spec get_repetition(ehl7:field_index(), ehl7:raw_segment()) -> ehl7:field() | undefined.
+get_repetition([_FieldIndex, _RepIndex] = Index, Segment) ->
+    get_element(Index, Segment).
+
+-spec get_repetition(ehl7:field_index(), ehl7:field_data_type(), ehl7:field_length(), ehl7:raw_segment()) -> ehl7:field() | undefined.
+get_repetition([_FieldIndex, _RepIndex] = Index, DataType, Length, Segment) ->
+    get_element(Index, DataType, Length, Segment).
+
+
+-spec get_component(ehl7:field_index(), ehl7:raw_segment()) -> ehl7:field() | undefined.
+get_component([FieldIndex, CompIndex], Segment) ->
+    get_element([FieldIndex, 1, CompIndex], Segment);
+get_component([_FieldIndex, _RepIndex, _CompIndex] = Index, Segment) ->
+    get_element(Index, Segment).
+
+-spec get_component(ehl7:field_index(), ehl7:field_data_type(), ehl7:field_length(), ehl7:raw_segment()) -> ehl7:field() | undefined.
+get_component([FieldIndex, CompIndex], DataType, Length, Segment) ->
+    get_element([FieldIndex, 1, CompIndex], DataType, Length, Segment);
+get_component([_FieldIndex, _RepIndex, _CompIndex] = Index, DataType, Length, Segment) ->
+    get_element(Index, DataType, Length, Segment).
+
+
+-spec get_subcomponent(ehl7:field_index(), ehl7:raw_segment()) -> ehl7:field() | undefined.
+get_subcomponent([FieldIndex, CompIndex, SubcompIndex], Segment) ->
+    get_element([FieldIndex, 1, CompIndex, SubcompIndex], Segment);
+get_subcomponent([_FieldIndex, _RepIndex, _CompIndex, _SubcompIndex] = Index, Segment) ->
+    get_element(Index, Segment).
+
+-spec get_subcomponent(ehl7:field_index(), ehl7:field_data_type(), ehl7:field_length(), ehl7:raw_segment()) -> ehl7:field() | undefined.
+get_subcomponent([FieldIndex, CompIndex, SubcompIndex], DataType, Length, Segment) ->
+    get_element([FieldIndex, 1, CompIndex, SubcompIndex], DataType, Length, Segment);
+get_subcomponent([_FieldIndex, _RepIndex, _CompIndex, _SubcompIndex] = Index, DataType, Length, Segment) ->
+    get_element(Index, DataType, Length, Segment).
+
+
+-spec get_element(ehl7:field_index(), ehl7:field_data_type(), ehl7:field_length(), ehl7:raw_segment()) -> ehl7:field() | undefined.
+get_element(Index, DataType, Length, Segment) ->
+    case get_element(Index, Segment) of
         Tuple when is_tuple(Tuple) ->
             Tuple;
         Value ->
             convert(Value, DataType, Length)
     end.
 
+-spec get_element(ehl7:field_index(), ehl7:raw_segment()) -> ehl7:raw_field() | undefined.
+get_element([Index | Tail], Segment) ->
+    get_subelement([Index + 1 | Tail], Segment);
+get_element(Index, Segment) when is_integer(Index)->
+    get_subelement([Index + 1], Segment).
 
--spec get_field(ehl7:field_index(), ehl7:raw_segment()) -> ehl7:raw_field() | undefined.
-get_field([Index | Tail], Segment) ->
-    get_element([Index + 1 | Tail], Segment);
-get_field(Index, Segment) when is_integer(Index)->
-    get_element([Index + 1], Segment).
 
 
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
 
--spec get_element(ehl7:field_index(), tuple()) -> ehl7:raw_field() | undefined.
-get_element([Index | Tail], Element) when is_tuple(Element) ->
+-spec get_subelement(ehl7:field_index(), tuple()) -> ehl7:raw_field() | undefined.
+get_subelement([Index | Tail], Element) when is_tuple(Element) ->
     if
         tuple_size(Element) >= Index ->
-            get_element(Tail, element(Index, Element));
+            get_subelement(Tail, element(Index, Element));
         true ->
             undefined
     end;
-get_element([Index | Tail], Element) when not is_tuple(Element) ->
+get_subelement([Index | Tail], Element) when not is_tuple(Element) ->
     case Index of
         1 ->
-            get_element(Tail, Element);
+            get_subelement(Tail, Element);
         _Other ->
             undefined
     end;
-get_element([], Element) ->
+get_subelement([], Element) ->
     Element.
 
 
