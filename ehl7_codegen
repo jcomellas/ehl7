@@ -2,6 +2,15 @@
 %% -*- erlang -*-
 %%! -sname ehl7_codegen -pz deps/bstr/ebin deps/getopt/ebin
 
+%%%-------------------------------------------------------------------
+%%% @author Juan Jose Comellas <jcomellas@erlar.com>
+%%% @copyright (C) 2011 Juan Jose Comellas
+%%% @doc Module that generates code to decode/encode HL7 segments.
+%%% @end
+%%% This source file is subject to the New BSD License. You should have received
+%%% a copy of the New BSD license with this software. If not, it can be
+%%% retrieved from: http://www.opensource.org/licenses/bsd-license.php
+%%%-------------------------------------------------------------------
 -module(ehl7_codegen).
 -author('Juan Jose Comellas <jcomellas@erlar.com>').
 
@@ -23,7 +32,12 @@ main(Args) ->
     OptSpecList = option_spec_list(),
     case getopt:parse(OptSpecList, Args) of
         {ok, {Options, _NonOptArgs}} ->
-            codegen(Options);
+            case lists:member(help, Options) of
+                true ->
+                    getopt:usage(OptSpecList, escript:script_name());
+                false ->
+                    codegen(Options)
+            end;
         {error, {Reason, Data}} ->
             io:format("Error: ~s ~p~n~n", [Reason, Data]),
             getopt:usage(OptSpecList, escript:script_name())
@@ -37,9 +51,9 @@ option_spec_list() ->
       "Show the program options"},
      {verbose,     $v,        "verbose",     {boolean, false},
       "Verbose output"},
-     {header,      undefined, undefined,     {string, "include/ehl7_segment.hrl"},
+     {header,      $h,        "hrl",         {string, "include/ehl7_segment.hrl"},
       "File where the generated header will be saved to"},
-     {source,      undefined, undefined,     {string, "src/ehl7_segment.erl"},
+     {source,      $e,        "erl",         {string, "src/ehl7_segment.erl"},
       "File where the generated code will be saved to"}
     ].
 
@@ -100,13 +114,20 @@ codegen_segment_source(Header, Source, SegmentDefs) ->
                <<"-author('">>, file_author(), <<"').\n\n">>,
                <<"-include(\"">>, Header, <<"\").\n\n">>,
                <<
-                 "-import(ehl7, [get_field/4]).\n"
-                 "-export([decode/1]).\n"
+                 "-import(ehl7_field, [get_field/4, get_component/4, get_subcomponent/4]).\n"
+                 "-export([decode/1, encode/1]).\n"
                  "\n\n"
-                 "%% Decode a segment encoded as a tuple and convert it to a record\n"
-                 "decode(Segment) ->\n"
-                 "    SegmentId = binary_to_atom(bstr:lower(element(1, Segment)), latin1),\n"
-                 "    decode(SegmentId, Segment).\n\n\n"
+                 "%% @doc Decode a segment encoded as a tuple and convert it to a record\n"
+                 "-spec decode(ehl7:raw_segment()) -> ehl7:segment().\n"
+                 "decode(RawSegment) ->\n"
+                 "    SegmentId = binary_to_atom(bstr:lower(element(1, RawSegment)), latin1),\n"
+                 "    decode(SegmentId, RawSegment).\n\n\n"
+                 "%% @doc Encode a segment record and convert it to a tuple\n"
+                 "-spec encode(ehl7:segment()) -> ehl7:raw_segment().\n"
+                 "encode(_Segment) ->\n"
+                 "    %% SegmentId = element(1, Segment),\n"
+                 "    %% encode(SegmentId, Segment).\n"
+                 "    not_implemented.\n\n\n"
                >>
               ],
     [Decoder | codegen_segment_decoder(SegmentDefs, [])].
@@ -115,7 +136,7 @@ codegen_segment_source(Header, Source, SegmentDefs) ->
 codegen_segment_decoder([{SegmentId, Description, ElementDefs} | Tail], Acc) ->
     RecordName = bstr:lower(SegmentId),
     Decoder = [
-               [<<"%% Decode the ">>, SegmentId, <<" (">>, Description, <<") segment\n">>],
+               [<<"%% @doc Decode the ">>, SegmentId, <<" (">>, Description, <<") segment\n">>],
                [<<"decode(">>, RecordName, <<", Segment) ->\n">>],
                [<<"    #">>, RecordName, <<"{\n">>] |
                codegen_element_decoder(ElementDefs, [])
@@ -124,12 +145,12 @@ codegen_segment_decoder([{SegmentId, Description, ElementDefs} | Tail], Acc) ->
 codegen_segment_decoder([], Acc) ->
     Decoder  = [
                 <<"decode(_SegmentId, Segment) ->\n">>,
-                <<"    {error, {unknown_segment_id, element(1, Segment)}}.\n">>
+                <<"    {error, {unknown_segment_id, element(1, Segment)}}.\n\n">>
                ],
     lists:reverse([Decoder | Acc]).
 
 
-codegen_element_decoder([{Name, _Type, Index, DataType, Length} | Tail], Acc) ->
+codegen_element_decoder([{Name, Type, Index, DataType, Length} | Tail], Acc) ->
     Indentation = <<"        ">>,
     LineEnd = case Tail of
                   [] ->
@@ -144,7 +165,7 @@ codegen_element_decoder([{Name, _Type, Index, DataType, Length} | Tail], Acc) ->
                        false ->
                            Index + 1
                    end,
-    Line = io_lib:format("~s = get_field(~w, ~s, ~w, Segment)", [Name, ElementIndex, DataType, Length]),
+    Line = io_lib:format("~s = get_~s(~w, ~s, ~w, Segment)", [Name, Type, ElementIndex, DataType, Length]),
     codegen_element_decoder(Tail, [[Indentation, Line, LineEnd] | Acc]);
 codegen_element_decoder([], Acc) ->
     lists:reverse(Acc).
@@ -186,6 +207,9 @@ file_header() ->
      <<
        "%%% @doc Module that parses and generates segments for HL7 messages.\n"
        "%%% @end\n"
+       "%%%\n"
+       "%%% This file was autogenerated. DO NOT MODIFY.\n"
+       "%%%\n"
        "%%% This source file is subject to the New BSD License. You should have received\n"
        "%%% a copy of the New BSD license with this software. If not, it can be\n"
        "%%% retrieved from: http://www.opensource.org/licenses/bsd-license.php\n"
@@ -205,34 +229,34 @@ get_segment_defs() ->
        {company_id,                            component,    [1, 0],    string,    6},
        {company_name,                          component,    [1, 1],    string,   30},
        {company_id_coding_system,              component,    [1, 2],    string,   20},
-       {start_date,                            field,        3,         date,      8},
-       {end_date,                              field,        4,         date,      8},
+       {start_date,                            field,        [3],       date,      8},
+       {end_date,                              field,        [4],       date,      8},
        {authorization_id,                      component,    [5, 0],    string,   20},
-       {requested_treatments,                  field,        7,         integer,   2},
-       {authorized_treatments,                 field,        8,         integer,   2}
+       {requested_treatments,                  field,        [7],       integer,   2},
+       {authorized_treatments,                 field,        [8],       integer,   2}
       ]},
      %% DG1: Diagnosis information
      {<<"DG1">>, <<"Diagnosis information">>,
       [
-       {set_id,                                field,       0,         integer,   4},
-       {diagnosis_id,                          component,   [2, 0],    string,   20},
-       {name,                                  component,   [2, 1],    string,   32},
-       {coding_system,                         component,   [2, 2],    string,   10},
-       {diagnosis_type,                        field,       5,         string,    2}
+       {set_id,                                field,       [0],        integer,   4},
+       {diagnosis_id,                          component,   [2, 0],     string,   20},
+       {name,                                  component,   [2, 1],     string,   32},
+       {coding_system,                         component,   [2, 2],     string,   10},
+       {diagnosis_type,                        field,       [5],        string,    2}
       ]},
      %% DSC: Continuation pointer
      {<<"DSC">>, <<"Continuation pointer">>,
       [
-       {continuation_pointer,                  field,        0,         string,   15}
+       {continuation_pointer,                  field,        [0],       string,   15}
       ]},
      %% DSP: Display data
      {<<"DSP">>, <<"Display data">>,
       [
-       {set_id,                                field,        0,         integer,   4},
-       {display_level,                         field,        1,         string,    4},
-       {data_line,                             field,        2,         string,   40},
-       {break_point,                           field,        3,         string,    2},
-       {result_id,                             field,        4,         string,   20}
+       {set_id,                                field,        [0],       integer,   4},
+       {display_level,                         field,        [1],       string,    4},
+       {data_line,                             field,        [2],       string,   40},
+       {break_point,                           field,        [3],       string,    2},
+       {result_id,                             field,        [4],       string,   20}
       ]},
      %% ERR: Error information
      {<<"ERR">>, <<"Error information">>,
@@ -246,13 +270,13 @@ get_segment_defs() ->
      %% EVN: Event type
      {<<"EVN">>, <<"Event type">>,
       [
-       {recorded_date,                         field,        1,         date,     14},
-       {planned_event_date,                    field,        2,         date,     14}
+       {recorded_date,                         field,        [1],       date,     14},
+       {planned_event_date,                    field,        [2],       date,     14}
       ]},
      %% IN1: Insurance
      {<<"IN1">>, <<"Insurance">>,
       [
-       {set_id,                                field,        0,         integer,   4},
+       {set_id,                                field,        [0],       integer,   4},
        {plan_id,                               component,    [1, 0],    string,   20},
        {plan_name,                             component,    [1, 1],    string,   30},
        {company_id,                            component,    [2, 0],    string,   6},
@@ -264,16 +288,16 @@ get_segment_defs() ->
      %% MSA: Message acknowledgment
      {<<"MSA">>, <<"Message acknowledgment">>,
       [
-       {ack_code,                              field,        0,         string,    2},
-       {message_control_id,                    field,        1,         string,   20},
+       {ack_code,                              field,        [0],       string,    2},
+       {message_control_id,                    field,        [1],       string,   20},
        {error_code,                            component,    [5, 0],    string,   10},
        {error_text,                            component,    [5, 1],    string,   40}
       ]},
      %% MSH: Message header
      {<<"MSH">>, <<"Message header">>,
       [
-       {field_separator,                       field,        0,         string,    1},
-       {encoding_characters,                   field,        1,         string,    4},
+       {field_separator,                       field,        [0],       string,    1},
+       {encoding_characters,                   field,        [1],       string,    4},
        {sending_application_id,                component,    [2, 0],    string,   12},
        {sending_facility_id,                   component,    [3, 0],    string,   12},
        {sending_facility_universal_id,         component,    [3, 1],    string,   20},
@@ -282,11 +306,11 @@ get_segment_defs() ->
        {receiving_facility_id,                 component,    [5, 0],    string,   12},
        {receiving_facility_universal_id,       component,    [5, 1],    string,   20},
        {receiving_facility_universal_id_type,  component,    [5, 2],    string,   20},
-       {message_date,                          field,        6,         date,     14},
+       {message_date,                          field,        [6],       date,     14},
        {message_type,                          component,    [8, 0],    string,    3},
        {trigger_event,                         component,    [8, 1],    string,    3},
        {message_structure,                     component,    [8, 2],    string,    7},
-       {message_control_id,                    field,        9,         string,   20},
+       {message_control_id,                    field,        [9],       string,   20},
        {processing_id,                         field,        [10],      string,    3},
        {version,                               field,        [11],      string,    8},
        {accept_ack_type,                       field,        [14],      string,    2},
@@ -296,13 +320,13 @@ get_segment_defs() ->
      %% NTE: Notes and comments
      {<<"NTE">>, <<"Notes and comments">>,
       [
-       {set_id,                                field,        0,         integer,   4},
-       {comment,                               field,        2,         string,  512}
+       {set_id,                                field,        [0[,       integer,   4},
+       {comment,                               field,        [2],       string,  512}
       ]},
      %% PID: Patient information
      {<<"PID">>, <<"Patient information">>,
       [
-       {set_id,                                field,        0,         integer,   4},
+       {set_id,                                field,        [0],       integer,   4},
        %% Repetition 0
        {patient_id,                            component,    [2, 0, 0], string,   20},
        %% Repetition 1
@@ -317,11 +341,11 @@ get_segment_defs() ->
      %% PR1: Procedure information
      {<<"PR1">>, <<"Procedure information">>,
       [
-       {set_id,                                field,        0,         integer,   4},
+       {set_id,                                field,        [0],       integer,   4},
        {procedure_id,                          component,    [2, 0],    string,   20},
        {procedure_name,                        component,    [2, 1],    string,   30},
        {coding_system,                         component,    [2, 2],    string,    4},
-       {date,                                  field,        4,         date,     14}
+       {date,                                  field,        [4],       date,     14}
       ]},
      %% PRD: Provider data
      {<<"PRD">>, <<"Provider data">>,
@@ -353,23 +377,23 @@ get_segment_defs() ->
      %% PV1: Patient visit
      {<<"PV1">>, <<"Patient visit">>,
       [
-       {set_id,                                field,        0,         string,    4},
-       {patient_class,                         field,        1,         string,    1},
-       %% {assigned_patient_location,             field,        2,         string,   34},
+       {set_id,                                field,        [0],       string,    4},
+       {patient_class,                         field,        [1],       string,    1},
+       %% {assigned_patient_location,             field,        [2],       string,   34},
        {patient_point_of_care,                 component,    [2, 0],    string,   10},
        {patient_location_facility,             component,    [2, 3],    string,   21},
-       {admission_type,                        field,        3,         string,   34},
-       %% {attending_doctor,                      field,        6,         string,   99},
+       {admission_type,                        field,        [3],       string,   34},
+       %% {attending_doctor,                      field,        [6],       string,   99},
        {attending_doctor_id,                   component,    [6, 0],    string,   20},
        {attending_doctor_last_name,            component,    [6, 1],    string,   25},
        {attending_doctor_first_name,           component,    [6, 2],    string,   25},
        {attending_doctor_assigning_authority,  component,    [6, 8],    string,   21},
-       %% {referring_doctor,                      field,        7,         string,   99},
+       %% {referring_doctor,                      field,        [7],       string,   99},
        {referring_doctor_id,                   component,    [7, 0],    string,   20},
        {referring_doctor_last_name,            component,    [7, 1],    string,   25},
        {referring_doctor_first_name,           component,    [7, 2],    string,   25},
        {referring_doctor_assigning_authority,  component,    [7, 8],    string,   21},
-       {hospital_service,                      field,        9,         string,   99},
+       {hospital_service,                      field,        [9],       string,   99},
        {readmission_indicator,                 field,        [12],      string,    2},
        {discharge_diposition,                  field,        [35],      string,    3},
        {admit_date,                            field,        [43],      date,     12},
@@ -379,28 +403,28 @@ get_segment_defs() ->
      %% PV2: Patient visit - additional information
      {<<"PV2">>, <<"Patient visit - additional information">>,
       [
-       %% {transfer_reason,                       field,        3,         string,   20},
+       %% {transfer_reason,                       field,        [3],       string,   20},
        {transfer_reason_id,                    component,    [3, 0],    string,   20}
       ]},
      %% QAK: Query acknowledgment
      {<<"QAK">>, <<"Query acknowledgment">>,
       [
-       {query_tag,                             field,        0,         string,   32},
-       {query_response_status,                 field,        1,         string,    4},
+       {query_tag,                             field,        [0],       string,   32},
+       {query_response_status,                 field,        [1],       string,    4},
        {query_id,                              component,    [2, 0],    string,   14},
        {query_name,                            component,    [2, 1],    string,   30}
       ]},
      %% QPD: Query parameter definition
      {<<"QPD_Q15">>, <<"Query parameter definition -- procedure totals query">>,
       [
-       %% {message_query_name,                    field,        0,         string,   50},
+       %% {message_query_name,                    field,        [0],       string,   50},
        {query_id,                              component,    [0, 0],    string,   20},
        {query_name,                            component,    [0, 1],    string,   30},
-       {query_tag,                             field,        1,         string,   32},
+       {query_tag,                             field,        [1],       string,   32},
        {provider_id,                           component,    [2, 0],    string,   15},
        {provider_id_type,                      component,    [2, 1],    string,    4},
-       {start_date,                            field,        3,         date,     12},
-       {end_date,                              field,        4,         date,     12},
+       {start_date,                            field,        [3],       date,     12},
+       {end_date,                              field,        [4],       date,     12},
        {procedure_id,                          component,    [5, 0],    string,   30},
        {procedure_coding_system,               component,    [5, 1],    string,    8},
        {authorizer_id,                         component,    [6, 0],    string,    6}
@@ -408,28 +432,28 @@ get_segment_defs() ->
      %% RCP: Response control parameter
      {<<"RCP">>, <<"Response control parameter">>,
       [
-       {query_priority,                        field,        0,         string,    1},
+       {query_priority,                        field,        [0],       string,    1},
        {response_limit,                        component,    [1, 0],    integer,  10},
        {response_unit,                         subcomponent, [1, 1, 0], string,    2},
        {response_modality_id,                  component,    [2, 0],    string,   10},
-       {execution_date,                        field,        3,         date,     12},
-       {sort_by,                               field,        5,         string,   512}
+       {execution_date,                        field,        [3],       date,     12},
+       {sort_by,                               field,        [5],       string,   512}
       ]},
      %% RF1: Referral information
      {<<"RF1">>, <<"Referral information">>,
       [
-       %% {referral_status,                       field,        0,         string,   21},
+       %% {referral_status,                       field,        [0],       string,   21},
        {referral_status_id,                    component,    [0, 0],    string,    5},
        {referral_status_description,           component,    [0, 1],    string,   15},
-       %% {referral_type,                         field,        2,         string,   21},
+       %% {referral_type,                         field,        [2],       string,   21},
        {referral_type_id,                      component,    [2, 0],    string,    5},
        {referral_type_description,             component,    [2, 1],    string,   15},
        %% {originating_referral_id,               field,        [5, 0],    string,   15},
        {originating_referral_id,               component,    [5, 0],    string,   15},
-       {effective_date,                        field,        6,         date,     12},
-       {expiration_date,                       field,        7,         date,     12},
-       {process_date,                          field,        8,         date,     12},
-       %% {referral_reason,                       field,        9,         string,   21},
+       {effective_date,                        field,        [6],       date,     12},
+       {expiration_date,                       field,        [7],       date,     12},
+       {process_date,                          field,        [8],       date,     12},
+       %% {referral_reason,                       field,        [9],       string,   21},
        {referral_reason_id,                    component,    [9, 0],    string,   21}
       ]},
      %% ZAU: Procedure authorization information
@@ -440,14 +464,14 @@ get_segment_defs() ->
        {authorization_status,                  component,    [2, 0],    string,    4},
        {authorization_status_text,             component,    [2, 1],    string,   15},
        {pre_authorization_id,                  component,    [3, 0],    string,   15},
-       {pre_authorization_date,                field,        4,         string,    8},
+       {pre_authorization_date,                field,        [4],       string,    8},
        {copay,                                 subcomponent, [5, 0, 0], string,   10},
        {copay_currency,                        subcomponent, [5, 0, 1], string,   10}
       ]},
      %% ZIN: Additional insurance information
      {<<"ZIN">>, <<"Additional insurance information">>,
       [
-       {eligibility_indicator,                 field,        0,         string,    1},
+       {eligibility_indicator,                 field,        [0],       string,    1},
        {patient_vat_status,                    component,    [1, 0],    string,    4},
        {patient_vat_status_text,               component,    [1, 1],    string,    7}
       ]}
