@@ -14,7 +14,9 @@
          get_repetition/2, get_repetition/4,
          get_component/2, get_component/4,
          get_subcomponent/2, get_subcomponent/4,
-         get_element/2, get_element/4]).
+         get_element/2, get_element/4,
+         from_raw_value/3,
+         to_raw_value/3]).
 
 
 -spec get_field(ehl7:field_index(), ehl7:raw_segment()) -> ehl7:field() | undefined.
@@ -67,7 +69,7 @@ get_element(Index, DataType, Length, Segment) ->
         Tuple when is_tuple(Tuple) ->
             Tuple;
         Value ->
-            convert(Value, DataType, Length)
+            from_raw_value(Value, DataType, Length)
     end.
 
 -spec get_element(ehl7:field_index(), ehl7:raw_segment()) -> ehl7:raw_field() | undefined.
@@ -101,24 +103,24 @@ get_subelement([], Element) ->
     Element.
 
 
--spec convert(ehl7:raw_field() | undefined, ehl7:field_data_type(), ehl7:field_length()) -> ehl7:field().
-convert(undefined, _DataType, _Length) ->
+-spec from_raw_value(ehl7:raw_field() | undefined, ehl7:field_data_type(), ehl7:field_length()) -> ehl7:field().
+from_raw_value(undefined, _DataType, _Length) ->
     undefined;
-convert(Value, string, _Length) ->
+from_raw_value(Value, string, _Length) ->
     Value;
-convert(<<>>, _DataType, _Length) ->
+from_raw_value(<<>>, _DataType, _Length) ->
     undefined;
-convert(Value, integer, _Length) ->
+from_raw_value(Value, integer, _Length) ->
     bstr:to_integer(Value);
-convert(<<Year:4/binary, Month:2/binary, Day:2/binary, _Tail/binary>>, date, 8) ->
+from_raw_value(<<Year:4/binary, Month:2/binary, Day:2/binary, _Tail/binary>>, date, 8) ->
     {bstr:to_integer(Year), bstr:to_integer(Month), bstr:to_integer(Day)};
-convert(<<Year:4/binary, Month:2/binary, Day:2/binary, Hour:2/binary, Min:2/binary, _Tail/binary>>, date, 12) ->
+from_raw_value(<<Year:4/binary, Month:2/binary, Day:2/binary, Hour:2/binary, Min:2/binary, _Tail/binary>>, date, 12) ->
     {{bstr:to_integer(Year), bstr:to_integer(Month), bstr:to_integer(Day)},
      {bstr:to_integer(Hour), bstr:to_integer(Min), 0}};
-convert(<<Year:4/binary, Month:2/binary, Day:2/binary, Hour:2/binary, Min:2/binary, Sec:2/binary, _Tail/binary>>, date, 14) ->
+from_raw_value(<<Year:4/binary, Month:2/binary, Day:2/binary, Hour:2/binary, Min:2/binary, Sec:2/binary, _Tail/binary>>, date, 14) ->
     {{bstr:to_integer(Year), bstr:to_integer(Month), bstr:to_integer(Day)},
      {bstr:to_integer(Hour), bstr:to_integer(Min), bstr:to_integer(Sec)}};
-convert(Value, float, _Length) ->
+from_raw_value(Value, float, _Length) ->
     case bstr:member(Value, $.) of
         true ->
             bstr:to_float(Value);
@@ -126,3 +128,33 @@ convert(Value, float, _Length) ->
             bstr:to_integer(Value) * 1.0
     end.
 
+
+-spec to_raw_value(ehl7:field() | undefined, ehl7:field_data_type(), ehl7:field_length()) -> ehl7:raw_field().
+to_raw_value(undefined, _DataType, _Length) ->
+    <<>>;
+to_raw_value(Value, string, _Length) ->
+    Value;
+to_raw_value(Value, integer, _Length) ->
+    bstr:from_integer(Value);
+to_raw_value({Year, Month, Day}, date, 8) ->
+    YearStr = bstr:lpad(bstr:from_integer(Year), 4, $0),
+    MonthStr = bstr:lpad(bstr:from_integer(Month), 2, $0),
+    DayStr = bstr:lpad(bstr:from_integer(Day), 2, $0),
+    <<YearStr:4/binary, MonthStr:2/binary, DayStr:2/binary>>;
+to_raw_value({{Year, Month, Day}, {Hour, Min, _Sec}}, date, 12) ->
+    YearStr = bstr:lpad(bstr:from_integer(Year), 4, $0),
+    MonthStr = bstr:lpad(bstr:from_integer(Month), 2, $0),
+    DayStr = bstr:lpad(bstr:from_integer(Day), 2, $0),
+    HourStr = bstr:lpad(bstr:from_integer(Hour), 2, $0),
+    MinStr = bstr:lpad(bstr:from_integer(Min), 2, $0),
+    <<YearStr:4/binary, MonthStr:2/binary, DayStr:2/binary, HourStr:2/binary, MinStr:2/binary>>;
+to_raw_value({{Year, Month, Day}, {Hour, Min, Sec}}, date, 14) ->
+    YearStr = bstr:lpad(bstr:from_integer(Year), 4, $0),
+    MonthStr = bstr:lpad(bstr:from_integer(Month), 2, $0),
+    DayStr = bstr:lpad(bstr:from_integer(Day), 2, $0),
+    HourStr = bstr:lpad(bstr:from_integer(Hour), 2, $0),
+    MinStr = bstr:lpad(bstr:from_integer(Min), 2, $0),
+    SecStr = bstr:lpad(bstr:from_integer(Sec), 2, $0),
+    <<YearStr:4/binary, MonthStr:2/binary, DayStr:2/binary, HourStr:2/binary, MinStr:2/binary, SecStr:2/binary>>;
+to_raw_value(Value, float, _Length) ->
+    bstr:from_float(Value).

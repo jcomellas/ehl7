@@ -11,7 +11,7 @@
 -author('Juan Jose Comellas <juanjo@comellas.org>').
 
 %% API
--export([decode/2, encode/2]).
+-export([decode/2, encode/2, raw_encode/1]).
 -export([get_segment/2, get_field/2, get_field/4]).
 
 -export_type([raw_msg/0, segment_id/0, raw_segment/0, raw_field/0, field/0,
@@ -28,8 +28,8 @@
 -type field_index() :: non_neg_integer() | [non_neg_integer()].
 -type field_data_type() :: 'string' | 'integer' | 'date' | 'float'.
 -type field_length() :: non_neg_integer().
--type decode_option() :: raw.
--type encode_option() :: raw.
+-type decode_option() :: 'raw'.
+-type encode_option() :: 'raw'.
 
 
 %%%===================================================================
@@ -60,13 +60,14 @@ decode(Buffer, Options) ->
 
 -spec encode(Msg :: msg(), [encode_option()]) -> {ok, iolist()} | {error, Reason :: any()}.
 encode(Msg, Options) ->
-    RawMsg = case lists:members(raw, Options) of
-                true ->
-                    Msg;
-                false ->
-                    encode_msg(Msg, [])
-            end,
-    raw_encode(RawMsg).
+    %% RawMsg =
+    case lists:member(raw, Options) of
+        true ->
+            Msg;
+        false ->
+            encode_msg(Msg, [])
+    end. %%,
+    %% raw_encode(RawMsg).
 
 
 -spec get_segment(segment_id(), raw_msg()) -> raw_segment() | undefined.
@@ -119,5 +120,8 @@ decode_msg([], Acc) ->
     lists:reverse(Acc).
 
 -spec encode_msg(msg(), Acc :: list()) -> raw_msg().
-encode_msg(_Msg, _Acc) ->
-    throw(not_implemented).
+encode_msg([Segment | Tail], Acc) ->
+    encode_msg(Tail, [ehl7_segment:encode(Segment) | Acc]);
+encode_msg([], Acc) ->
+    lists:reverse(Acc).
+
