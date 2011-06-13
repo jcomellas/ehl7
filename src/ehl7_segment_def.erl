@@ -22,6 +22,9 @@
 -type element_def() :: {element_name(), element_type(), element_index(), element_data_type(), non_neg_integer()}.
 -type segment_def() :: {segment_id(), Comment :: binary(), [element_def()]}.
 
+-define(START_BRACE, "[").
+-define(END_BRACE, "]").
+
 
 main(Args) ->
     OptSpecList = option_spec_list(),
@@ -110,8 +113,8 @@ codegen_segment_source(Header, Source, SegmentDefs) ->
               <<"-include(\"">>, Header, <<"\").\n\n">>,
               <<
                 "-import(ehl7_field, [get_field/4, get_component/4, get_subcomponent/4, to_raw_value/3]).\n"
-                "-export([decode/1, encode/1]).\n"
-                "\n\n"
+                "-export([decode/1, encode/1, encode/2]).\n\n"
+                "-type encode_options() :: 'tuple' | 'list'.\n\n\n"
                 "%% @doc Decode a segment encoded as a tuple and convert it to a record\n"
                 "-spec decode(ehl7:raw_segment()) -> ehl7:segment().\n"
                 "decode(RawSegment) ->\n"
@@ -121,12 +124,25 @@ codegen_segment_source(Header, Source, SegmentDefs) ->
                 "-spec encode(ehl7:segment()) -> ehl7:raw_segment().\n"
                 "encode(Segment) ->\n"
                 "    SegmentId = element(1, Segment),\n"
-                "    encode(SegmentId, Segment).\n\n\n"
+                "    encode_as_tuple(SegmentId, Segment).\n\n\n"
+                "%% @doc Encode a segment record and convert it to a list or tuple depending on the Options\n"
+                "-spec encode(ehl7:segment(), encode_options()) -> ehl7:raw_segment().\n"
+                "encode(Segment, Options) ->\n"
+                "    SegmentId = element(1, Segment),\n"
+                "    case lists:member(list, Options) of\n"
+                "        true ->\n"
+                "            encode_as_list(SegmentId, Segment);\n"
+                "        false ->\n"
+                "            encode_as_tuple(SegmentId, Segment)\n"
+                "    end.\n\n\n"
               >>
              ],
-    [Prefix,
+    [
+     Prefix,
      codegen_segment_decoder(SegmentDefs, []),
-     codegen_segment_encoder(SegmentDefs, [])].
+     codegen_segment_encoder(<<"encode_as_tuple">>, tuple, SegmentDefs, []),
+     codegen_segment_encoder(<<"encode_as_list">>, list, SegmentDefs, [])
+    ].
 
 
 codegen_segment_decoder([{SegmentId, Description, ElementDefs} | Tail], Acc) ->
@@ -161,7 +177,7 @@ codegen_element_decoder([], Acc) ->
 
 
 
-codegen_segment_encoder([{SegmentId, Description, ElementDefs} | Tail], Acc) ->
+codegen_segment_encoder(FunctionName, Format, [{SegmentId, Description, ElementDefs} | Tail], Acc) ->
     %% io:format("Generating encoder for segment ~s~n", [SegmentId]),
     LowerSegmentId = bstr:lower(SegmentId),
     LineEnd = case Tail of
@@ -170,56 +186,62 @@ codegen_segment_encoder([{SegmentId, Description, ElementDefs} | Tail], Acc) ->
                   _ ->
                       <<";\n">>
               end,
+    {StartBrace, EndBrace, FormatStr} = case Format of
+                                            tuple ->
+                                                {${, $}, atom_to_binary(Format, latin1)};
+                                            list ->
+                                                {$[, $], atom_to_binary(Format, latin1)}
+                                        end,
     Encoder = [
                [
-                <<"%% @doc Encode the ">>, SegmentId, <<" (">>, Description, <<") segment\n">>,
-                <<"encode(">>, LowerSegmentId,
+                <<"%% @doc Encode the ">>, SegmentId, <<" (">>, Description, <<") segment as a ", FormatStr/binary, "\n">>,
+                <<FunctionName/binary, "(">>, LowerSegmentId,
                 <<", Segment) ->\n"
-                  "    {\n"
+                  "    ", StartBrace, "\n"
                   "      <<\"">>, SegmentId, <<"\">>,\n">>
                ],
-               codegen_element_encoder(LowerSegmentId, [0], ElementDefs, []),
-               <<"    }">>, LineEnd
+               codegen_element_encoder(LowerSegmentId, StartBrace, EndBrace, [0], ElementDefs, []),
+               <<"    ", EndBrace>>, LineEnd
               ],
-    codegen_segment_encoder(Tail, [Encoder | Acc]);
-codegen_segment_encoder([], Acc) ->
+    codegen_segment_encoder(FunctionName, Format, Tail, [Encoder | Acc]);
+codegen_segment_encoder(_FunctionName, _Format, [], Acc) ->
     lists:reverse(Acc).
 
 
-codegen_element_encoder(SegmentId, PrevIndex, [{Name, _Type, Index, DataType, Length} | Tail], Acc) ->
-    {EndBraces, StartBraces, Depth, MissingCount} = get_brace_count(PrevIndex, Index),
-    %% io:format("Generating encoder for element ~s.~s (EndBraces=~w, StartBraces=~w, Depth=~w, Missing=~w)~n",
-    %%           [SegmentId, Name, EndBraces, StartBraces, Depth, MissingCount]),
+codegen_element_encoder(SegmentId, StartBrace, EndBrace, PrevIndex, [{Name, _Type, Index, DataType, Length} | Tail], Acc) ->
+    {EndBraceCount, StartBraceCount, Depth, MissingCount} = get_brace_count(PrevIndex, Index),
+    %% io:format("Generating encoder for element ~s.~s (EndBraceCount=~w, StartBraceCount=~w, Depth=~w, Missing=~w)~n",
+    %%           [SegmentId, Name, EndBraceCount, StartBraceCount, Depth, MissingCount]),
     Indentation = indentation(Depth),
     Separator = case PrevIndex of
                     [0] ->
                         <<>>;
                     _ ->
-                        add_ending_separator(EndBraces, [])
+                        add_ending_separator(EndBraceCount, [])
                 end,
     MissingElements = case MissingCount of
                           0 ->
                               [];
                           _ ->
-                              [Indentation, <<"<<>>">>, lists:duplicate(MissingCount - 1, <<", <<>>">>), <<",\n">>]
+                              [Indentation, <<"undefined">>, lists:duplicate(MissingCount - 1, <<", undefined">>), <<",\n">>]
                       end,
     Encoder = [
                Separator,
-               add_ending_braces(EndBraces, length(PrevIndex), first, []),
+               add_ending_braces(EndBrace, EndBraceCount, length(PrevIndex), first, []),
                MissingElements,
-               add_starting_braces(StartBraces, length(Index), []),
+               add_starting_braces(StartBrace, StartBraceCount, length(Index), []),
                [Indentation, io_lib:format("%% ~w\n", [Index])],
                [Indentation, io_lib:format("to_raw_value(Segment#~s.~s, ~s, ~w)",
                                            [SegmentId, Name, DataType, Length])]
               ],
-    codegen_element_encoder(SegmentId, Index, Tail, [Encoder | Acc]);
-codegen_element_encoder(_SegmentId, PrevIndex, [], Acc) ->
-    {EndBraces, _StartBraces, _Depth, _Missing} = get_brace_count(PrevIndex, [0]),
-    [lists:reverse(Acc), <<"\n">>, add_ending_braces(EndBraces, length(PrevIndex), last, [])].
+    codegen_element_encoder(SegmentId, StartBrace, EndBrace, Index, Tail, [Encoder | Acc]);
+codegen_element_encoder(_SegmentId, _StartBrace, EndBrace, PrevIndex, [], Acc) ->
+    {EndBraceCount, _StartBraceCount, _Depth, _Missing} = get_brace_count(PrevIndex, [0]),
+    [lists:reverse(Acc), <<"\n">>, add_ending_braces(EndBrace, EndBraceCount, length(PrevIndex), last, [])].
 
 
-add_ending_separator(EndBraces, Acc) ->
-    Separator = case EndBraces > 0 of
+add_ending_separator(EndBraceCount, Acc) ->
+    Separator = case EndBraceCount > 0 of
                     true ->
                         <<"\n">>;
                     false ->
@@ -228,22 +250,22 @@ add_ending_separator(EndBraces, Acc) ->
     [Separator | Acc].
 
 
-add_starting_braces(Count, Depth, Acc) when Count > 0 ->
-    Line = [indentation(Depth - Count), <<"{\n">>],
-    add_starting_braces(Count - 1, Depth, [Line | Acc]);
-add_starting_braces(_Count, _Depth, Acc) ->
+add_starting_braces(StartBrace, Count, Depth, Acc) when Count > 0 ->
+    Line = [indentation(Depth - Count), <<StartBrace, $\n>>],
+    add_starting_braces(StartBrace, Count - 1, Depth, [Line | Acc]);
+add_starting_braces(_StartBrace, _Count, _Depth, Acc) ->
     lists:reverse(Acc).
 
-add_ending_braces(Count, Depth, Section, Acc) when Count > 0 ->
+add_ending_braces(EndBrace, Count, Depth, Section, Acc) when Count > 0 ->
     LineEnd = if
                   Count > 1 orelse Section =:= last ->
-                      <<"}\n">>;
+                      <<EndBrace, "\n">>;
                   true ->
-                      <<"},\n">>
+                      <<EndBrace, ",\n">>
               end,
     Line = [indentation(Depth - 1), LineEnd],
-    add_ending_braces(Count - 1, Depth - 1, Section, [Line | Acc]);
-add_ending_braces(_Count, _Depth, _Section, Acc) ->
+    add_ending_braces(EndBrace, Count - 1, Depth - 1, Section, [Line | Acc]);
+add_ending_braces(_EndBrace, _Count, _Depth, _Section, Acc) ->
     lists:reverse(Acc).
 
 

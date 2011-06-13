@@ -16,7 +16,9 @@
 -include("include/ehl7_segment.hrl").
 
 -import(ehl7_field, [get_field/4, get_component/4, get_subcomponent/4, to_raw_value/3]).
--export([decode/1, encode/1]).
+-export([decode/1, encode/1, encode/2]).
+
+-type encode_options() :: 'tuple' | 'list'.
 
 
 %% @doc Decode a segment encoded as a tuple and convert it to a record
@@ -30,7 +32,19 @@ decode(RawSegment) ->
 -spec encode(ehl7:segment()) -> ehl7:raw_segment().
 encode(Segment) ->
     SegmentId = element(1, Segment),
-    encode(SegmentId, Segment).
+    encode_as_tuple(SegmentId, Segment).
+
+
+%% @doc Encode a segment record and convert it to a list or tuple depending on the Options
+-spec encode(ehl7:segment(), encode_options()) -> ehl7:raw_segment().
+encode(Segment, Options) ->
+    SegmentId = element(1, Segment),
+    case lists:member(list, Options) of
+        true ->
+            encode_as_list(SegmentId, Segment);
+        false ->
+            encode_as_tuple(SegmentId, Segment)
+    end.
 
 
 %% @doc Decode the AUT (Authorization information) segment
@@ -279,8 +293,8 @@ decode(_SegmentId, Segment) ->
     {error, {unknown_segment_id, element(1, Segment)}}.
 
 
-%% @doc Encode the AUT (Authorization information) segment
-encode(aut, Segment) ->
+%% @doc Encode the AUT (Authorization information) segment as a tuple
+encode_as_tuple(aut, Segment) ->
     {
       <<"AUT">>,
       {
@@ -301,7 +315,7 @@ encode(aut, Segment) ->
           to_raw_value(Segment#aut.company_id_coding_system, string, 20)
         }
       },
-      <<>>,
+      undefined,
       %% [4]
       to_raw_value(Segment#aut.start_date, date, 8),
       %% [5]
@@ -312,19 +326,19 @@ encode(aut, Segment) ->
           to_raw_value(Segment#aut.authorization_id, string, 20)
         }
       },
-      <<>>,
+      undefined,
       %% [8]
       to_raw_value(Segment#aut.requested_treatments, integer, 2),
       %% [9]
       to_raw_value(Segment#aut.authorized_treatments, integer, 2)
     };
-%% @doc Encode the DG1 (Diagnosis information) segment
-encode(dg1, Segment) ->
+%% @doc Encode the DG1 (Diagnosis information) segment as a tuple
+encode_as_tuple(dg1, Segment) ->
     {
       <<"DG1">>,
       %% [1]
       to_raw_value(Segment#dg1.set_id, integer, 4),
-          <<>>,
+          undefined,
       {
         {
           %% [3,1,1]
@@ -335,19 +349,19 @@ encode(dg1, Segment) ->
           to_raw_value(Segment#dg1.coding_system, string, 10)
         }
       },
-      <<>>, <<>>,
+      undefined, undefined,
       %% [6]
       to_raw_value(Segment#dg1.diagnosis_type, string, 2)
     };
-%% @doc Encode the DSC (Continuation pointer) segment
-encode(dsc, Segment) ->
+%% @doc Encode the DSC (Continuation pointer) segment as a tuple
+encode_as_tuple(dsc, Segment) ->
     {
       <<"DSC">>,
       %% [1]
       to_raw_value(Segment#dsc.continuation_pointer, string, 15)
     };
-%% @doc Encode the DSP (Display data) segment
-encode(dsp, Segment) ->
+%% @doc Encode the DSP (Display data) segment as a tuple
+encode_as_tuple(dsp, Segment) ->
     {
       <<"DSP">>,
       %% [1]
@@ -361,8 +375,8 @@ encode(dsp, Segment) ->
       %% [5]
       to_raw_value(Segment#dsp.result_id, string, 20)
     };
-%% @doc Encode the ERR (Error information) segment
-encode(err, Segment) ->
+%% @doc Encode the ERR (Error information) segment as a tuple
+encode_as_tuple(err, Segment) ->
     {
       <<"ERR">>,
       {
@@ -382,11 +396,11 @@ encode(err, Segment) ->
         }
       }
     };
-%% @doc Encode the EVN (Event type) segment
-encode(evn, Segment) ->
+%% @doc Encode the EVN (Event type) segment as a tuple
+encode_as_tuple(evn, Segment) ->
     {
       <<"EVN">>,
-      <<>>,
+      undefined,
       %% [2]
       to_raw_value(Segment#evn.recorded_date, date, 14),
       %% [3]
@@ -394,8 +408,8 @@ encode(evn, Segment) ->
       %% [4]
       to_raw_value(Segment#evn.event_reason_code, string, 3)
     };
-%% @doc Encode the IN1 (Insurance) segment
-encode(in1, Segment) ->
+%% @doc Encode the IN1 (Insurance) segment as a tuple
+encode_as_tuple(in1, Segment) ->
     {
       <<"IN1">>,
       %% [1]
@@ -412,17 +426,17 @@ encode(in1, Segment) ->
         {
           %% [3,1,1]
           to_raw_value(Segment#in1.company_id, string, 6),
-            <<>>, <<>>,
+            undefined, undefined,
           {
             %% [3,1,4,1]
             to_raw_value(Segment#in1.company_assigning_authority_id, string, 10),
-            <<>>, <<>>, <<>>,
+            undefined, undefined, undefined,
             %% [3,1,4,5]
             to_raw_value(Segment#in1.company_id_type, string, 10)
           }
         }
       },
-          <<>>, <<>>, <<>>, <<>>, <<>>, <<>>, <<>>, <<>>, <<>>, <<>>,
+          undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
       {
         {
           %% [14,1,1]
@@ -432,15 +446,15 @@ encode(in1, Segment) ->
         }
       }
     };
-%% @doc Encode the MSA (Message acknowledgment) segment
-encode(msa, Segment) ->
+%% @doc Encode the MSA (Message acknowledgment) segment as a tuple
+encode_as_tuple(msa, Segment) ->
     {
       <<"MSA">>,
       %% [1]
       to_raw_value(Segment#msa.ack_code, string, 2),
       %% [2]
       to_raw_value(Segment#msa.message_control_id, string, 20),
-          <<>>, <<>>, <<>>,
+          undefined, undefined, undefined,
       {
         {
           %% [6,1,1]
@@ -450,8 +464,8 @@ encode(msa, Segment) ->
         }
       }
     };
-%% @doc Encode the MSH (Message header) segment
-encode(msh, Segment) ->
+%% @doc Encode the MSH (Message header) segment as a tuple
+encode_as_tuple(msh, Segment) ->
     {
       <<"MSH">>,
       %% [1]
@@ -492,7 +506,7 @@ encode(msh, Segment) ->
       },
       %% [7]
       to_raw_value(Segment#msh.message_date, date, 14),
-          <<>>,
+          undefined,
       {
         {
           %% [9,1,1]
@@ -509,7 +523,7 @@ encode(msh, Segment) ->
       to_raw_value(Segment#msh.processing_id, string, 3),
       %% [12]
       to_raw_value(Segment#msh.version, string, 8),
-      <<>>, <<>>,
+      undefined, undefined,
       %% [15]
       to_raw_value(Segment#msh.accept_ack_type, string, 2),
       %% [16]
@@ -517,28 +531,28 @@ encode(msh, Segment) ->
       %% [17]
       to_raw_value(Segment#msh.country_code, string, 3)
     };
-%% @doc Encode the NTE (Notes and comments) segment
-encode(nte, Segment) ->
+%% @doc Encode the NTE (Notes and comments) segment as a tuple
+encode_as_tuple(nte, Segment) ->
     {
       <<"NTE">>,
       %% [1]
       to_raw_value(Segment#nte.set_id, integer, 4),
-      <<>>,
+      undefined,
       %% [3]
       to_raw_value(Segment#nte.comment, string, 512)
     };
-%% @doc Encode the PID (Patient information) segment
-encode(pid, Segment) ->
+%% @doc Encode the PID (Patient information) segment as a tuple
+encode_as_tuple(pid, Segment) ->
     {
       <<"PID">>,
       %% [1]
       to_raw_value(Segment#pid.set_id, integer, 4),
-          <<>>,
+          undefined,
       {
         {
           %% [3,1,1]
           to_raw_value(Segment#pid.patient_id, string, 20),
-            <<>>, <<>>,
+            undefined, undefined,
           {
             %% [3,1,4,1]
             to_raw_value(Segment#pid.assigning_authority_id, string, 6),
@@ -551,12 +565,12 @@ encode(pid, Segment) ->
           to_raw_value(Segment#pid.id_type, string, 2),
           %% [3,2,1]
           to_raw_value(Segment#pid.patient_document_id, string, 20),
-          <<>>, <<>>, <<>>,
+          undefined, undefined, undefined,
           %% [3,2,5]
           to_raw_value(Segment#pid.patient_document_id_type, string, 2)
         }
       },
-          <<>>,
+          undefined,
       {
         {
           %% [5,1,1]
@@ -566,13 +580,13 @@ encode(pid, Segment) ->
         }
       }
     };
-%% @doc Encode the PR1 (Procedure information) segment
-encode(pr1, Segment) ->
+%% @doc Encode the PR1 (Procedure information) segment as a tuple
+encode_as_tuple(pr1, Segment) ->
     {
       <<"PR1">>,
       %% [1]
       to_raw_value(Segment#pr1.set_id, integer, 4),
-          <<>>,
+          undefined,
       {
         {
           %% [3,1,1]
@@ -583,12 +597,12 @@ encode(pr1, Segment) ->
           to_raw_value(Segment#pr1.coding_system, string, 4)
         }
       },
-      <<>>,
+      undefined,
       %% [5]
       to_raw_value(Segment#pr1.date, date, 14)
     };
-%% @doc Encode the PRD (Provider data) segment
-encode(prd, Segment) ->
+%% @doc Encode the PRD (Provider data) segment as a tuple
+encode_as_tuple(prd, Segment) ->
     {
       <<"PRD">>,
       {
@@ -633,7 +647,7 @@ encode(prd, Segment) ->
           to_raw_value(Segment#prd.address_type, string, 1)
         }
       },
-          <<>>, <<>>, <<>>,
+          undefined, undefined, undefined,
       {
         {
           %% [7,1,1]
@@ -651,8 +665,8 @@ encode(prd, Segment) ->
         }
       }
     };
-%% @doc Encode the PV1 (Patient visit) segment
-encode(pv1, Segment) ->
+%% @doc Encode the PV1 (Patient visit) segment as a tuple
+encode_as_tuple(pv1, Segment) ->
     {
       <<"PV1">>,
       %% [1]
@@ -663,14 +677,14 @@ encode(pv1, Segment) ->
         {
           %% [3,1,1]
           to_raw_value(Segment#pv1.patient_point_of_care, string, 10),
-          <<>>, <<>>,
+          undefined, undefined,
           %% [3,1,4]
           to_raw_value(Segment#pv1.patient_location_facility, string, 21)
         }
       },
       %% [4]
       to_raw_value(Segment#pv1.admission_type, string, 34),
-          <<>>, <<>>,
+          undefined, undefined,
       {
         {
           %% [7,1,1]
@@ -679,7 +693,7 @@ encode(pv1, Segment) ->
           to_raw_value(Segment#pv1.attending_doctor_last_name, string, 25),
           %% [7,1,3]
           to_raw_value(Segment#pv1.attending_doctor_first_name, string, 25),
-          <<>>, <<>>, <<>>, <<>>, <<>>,
+          undefined, undefined, undefined, undefined, undefined,
           %% [7,1,9]
           to_raw_value(Segment#pv1.attending_doctor_assigning_authority, string, 21)
         }
@@ -692,34 +706,34 @@ encode(pv1, Segment) ->
           to_raw_value(Segment#pv1.referring_doctor_last_name, string, 25),
           %% [8,1,3]
           to_raw_value(Segment#pv1.referring_doctor_first_name, string, 25),
-          <<>>, <<>>, <<>>, <<>>, <<>>,
+          undefined, undefined, undefined, undefined, undefined,
           %% [8,1,9]
           to_raw_value(Segment#pv1.referring_doctor_assigning_authority, string, 21)
         }
       },
-      <<>>,
+      undefined,
       %% [10]
       to_raw_value(Segment#pv1.hospital_service, string, 99),
-      <<>>, <<>>,
+      undefined, undefined,
       %% [13]
       to_raw_value(Segment#pv1.readmission_indicator, string, 2),
-      <<>>, <<>>, <<>>, <<>>, <<>>, <<>>, <<>>, <<>>, <<>>, <<>>, <<>>, <<>>, <<>>, <<>>, <<>>, <<>>, <<>>, <<>>, <<>>, <<>>, <<>>, <<>>,
+      undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
       %% [36]
       to_raw_value(Segment#pv1.discharge_diposition, string, 3),
-      <<>>, <<>>, <<>>, <<>>, <<>>, <<>>, <<>>,
+      undefined, undefined, undefined, undefined, undefined, undefined, undefined,
       %% [44]
       to_raw_value(Segment#pv1.admit_date, date, 12),
       %% [45]
       to_raw_value(Segment#pv1.discharge_date, date, 12),
-      <<>>, <<>>, <<>>, <<>>, <<>>,
+      undefined, undefined, undefined, undefined, undefined,
       %% [51]
       to_raw_value(Segment#pv1.visit_indicator, string, 1)
     };
-%% @doc Encode the PV2 (Patient visit - additional information) segment
-encode(pv2, Segment) ->
+%% @doc Encode the PV2 (Patient visit - additional information) segment as a tuple
+encode_as_tuple(pv2, Segment) ->
     {
       <<"PV2">>,
-          <<>>, <<>>, <<>>,
+          undefined, undefined, undefined,
       {
         {
           %% [4,1,1]
@@ -727,8 +741,8 @@ encode(pv2, Segment) ->
         }
       }
     };
-%% @doc Encode the QAK (Query acknowledgment) segment
-encode(qak, Segment) ->
+%% @doc Encode the QAK (Query acknowledgment) segment as a tuple
+encode_as_tuple(qak, Segment) ->
     {
       <<"QAK">>,
       %% [1]
@@ -744,8 +758,8 @@ encode(qak, Segment) ->
         }
       }
     };
-%% @doc Encode the QPD_Q15 (Query parameter definition -- procedure totals query) segment
-encode(qpd_q15, Segment) ->
+%% @doc Encode the QPD_Q15 (Query parameter definition -- procedure totals query) segment as a tuple
+encode_as_tuple(qpd_q15, Segment) ->
     {
       <<"QPD_Q15">>,
       {
@@ -785,8 +799,8 @@ encode(qpd_q15, Segment) ->
         }
       }
     };
-%% @doc Encode the RCP (Response control parameter) segment
-encode(rcp, Segment) ->
+%% @doc Encode the RCP (Response control parameter) segment as a tuple
+encode_as_tuple(rcp, Segment) ->
     {
       <<"RCP">>,
       %% [1]
@@ -809,12 +823,12 @@ encode(rcp, Segment) ->
       },
       %% [4]
       to_raw_value(Segment#rcp.execution_date, date, 12),
-      <<>>,
+      undefined,
       %% [6]
       to_raw_value(Segment#rcp.sort_by, string, 512)
     };
-%% @doc Encode the RF1 (Referral information) segment
-encode(rf1, Segment) ->
+%% @doc Encode the RF1 (Referral information) segment as a tuple
+encode_as_tuple(rf1, Segment) ->
     {
       <<"RF1">>,
       {
@@ -825,7 +839,7 @@ encode(rf1, Segment) ->
           to_raw_value(Segment#rf1.referral_status_description, string, 15)
         }
       },
-          <<>>,
+          undefined,
       {
         {
           %% [3,1,1]
@@ -834,7 +848,7 @@ encode(rf1, Segment) ->
           to_raw_value(Segment#rf1.referral_type_description, string, 15)
         }
       },
-          <<>>, <<>>,
+          undefined, undefined,
       {
         {
           %% [6,1,1]
@@ -854,8 +868,8 @@ encode(rf1, Segment) ->
         }
       }
     };
-%% @doc Encode the ZAU (Procedure authorization information) segment
-encode(zau, Segment) ->
+%% @doc Encode the ZAU (Procedure authorization information) segment as a tuple
+encode_as_tuple(zau, Segment) ->
     {
       <<"ZAU">>,
       {
@@ -897,8 +911,8 @@ encode(zau, Segment) ->
         }
       }
     };
-%% @doc Encode the ZIN (Additional insurance information) segment
-encode(zin, Segment) ->
+%% @doc Encode the ZIN (Additional insurance information) segment as a tuple
+encode_as_tuple(zin, Segment) ->
     {
       <<"ZIN">>,
       %% [1]
@@ -912,5 +926,640 @@ encode(zin, Segment) ->
         }
       }
     }.
+
+
+%% @doc Encode the AUT (Authorization information) segment as a list
+encode_as_list(aut, Segment) ->
+    [
+      <<"AUT">>,
+      [
+        [
+          %% [1,1,1]
+          to_raw_value(Segment#aut.plan_id, string, 10),
+          %% [1,1,2]
+          to_raw_value(Segment#aut.plan_name, string, 20)
+        ]
+      ],
+      [
+        [
+          %% [2,1,1]
+          to_raw_value(Segment#aut.company_id, string, 6),
+          %% [2,1,2]
+          to_raw_value(Segment#aut.company_name, string, 30),
+          %% [2,1,3]
+          to_raw_value(Segment#aut.company_id_coding_system, string, 20)
+        ]
+      ],
+      undefined,
+      %% [4]
+      to_raw_value(Segment#aut.start_date, date, 8),
+      %% [5]
+      to_raw_value(Segment#aut.end_date, date, 8),
+      [
+        [
+          %% [6,1,1]
+          to_raw_value(Segment#aut.authorization_id, string, 20)
+        ]
+      ],
+      undefined,
+      %% [8]
+      to_raw_value(Segment#aut.requested_treatments, integer, 2),
+      %% [9]
+      to_raw_value(Segment#aut.authorized_treatments, integer, 2)
+    ];
+%% @doc Encode the DG1 (Diagnosis information) segment as a list
+encode_as_list(dg1, Segment) ->
+    [
+      <<"DG1">>,
+      %% [1]
+      to_raw_value(Segment#dg1.set_id, integer, 4),
+          undefined,
+      [
+        [
+          %% [3,1,1]
+          to_raw_value(Segment#dg1.diagnosis_id, string, 20),
+          %% [3,1,2]
+          to_raw_value(Segment#dg1.name, string, 32),
+          %% [3,1,3]
+          to_raw_value(Segment#dg1.coding_system, string, 10)
+        ]
+      ],
+      undefined, undefined,
+      %% [6]
+      to_raw_value(Segment#dg1.diagnosis_type, string, 2)
+    ];
+%% @doc Encode the DSC (Continuation pointer) segment as a list
+encode_as_list(dsc, Segment) ->
+    [
+      <<"DSC">>,
+      %% [1]
+      to_raw_value(Segment#dsc.continuation_pointer, string, 15)
+    ];
+%% @doc Encode the DSP (Display data) segment as a list
+encode_as_list(dsp, Segment) ->
+    [
+      <<"DSP">>,
+      %% [1]
+      to_raw_value(Segment#dsp.set_id, integer, 4),
+      %% [2]
+      to_raw_value(Segment#dsp.display_level, string, 4),
+      %% [3]
+      to_raw_value(Segment#dsp.data_line, string, 40),
+      %% [4]
+      to_raw_value(Segment#dsp.break_point, string, 2),
+      %% [5]
+      to_raw_value(Segment#dsp.result_id, string, 20)
+    ];
+%% @doc Encode the ERR (Error information) segment as a list
+encode_as_list(err, Segment) ->
+    [
+      <<"ERR">>,
+      [
+        [
+          %% [1,1,1]
+          to_raw_value(Segment#err.segment_id, string, 3),
+          %% [1,1,2]
+          to_raw_value(Segment#err.sequence, integer, 3),
+          %% [1,1,3]
+          to_raw_value(Segment#err.field_pos, integer, 3),
+          [
+            %% [1,1,4,1]
+            to_raw_value(Segment#err.error_code, string, 9),
+            %% [1,1,4,2]
+            to_raw_value(Segment#err.error_text, string, 61)
+          ]
+        ]
+      ]
+    ];
+%% @doc Encode the EVN (Event type) segment as a list
+encode_as_list(evn, Segment) ->
+    [
+      <<"EVN">>,
+      undefined,
+      %% [2]
+      to_raw_value(Segment#evn.recorded_date, date, 14),
+      %% [3]
+      to_raw_value(Segment#evn.planned_event_date, date, 14),
+      %% [4]
+      to_raw_value(Segment#evn.event_reason_code, string, 3)
+    ];
+%% @doc Encode the IN1 (Insurance) segment as a list
+encode_as_list(in1, Segment) ->
+    [
+      <<"IN1">>,
+      %% [1]
+      to_raw_value(Segment#in1.set_id, integer, 4),
+      [
+        [
+          %% [2,1,1]
+          to_raw_value(Segment#in1.plan_id, string, 20),
+          %% [2,1,2]
+          to_raw_value(Segment#in1.plan_name, string, 30)
+        ]
+      ],
+      [
+        [
+          %% [3,1,1]
+          to_raw_value(Segment#in1.company_id, string, 6),
+            undefined, undefined,
+          [
+            %% [3,1,4,1]
+            to_raw_value(Segment#in1.company_assigning_authority_id, string, 10),
+            undefined, undefined, undefined,
+            %% [3,1,4,5]
+            to_raw_value(Segment#in1.company_id_type, string, 10)
+          ]
+        ]
+      ],
+          undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+      [
+        [
+          %% [14,1,1]
+          to_raw_value(Segment#in1.authorization_number, string, 20),
+          %% [14,1,2]
+          to_raw_value(Segment#in1.auhtorization_date, date, 8)
+        ]
+      ]
+    ];
+%% @doc Encode the MSA (Message acknowledgment) segment as a list
+encode_as_list(msa, Segment) ->
+    [
+      <<"MSA">>,
+      %% [1]
+      to_raw_value(Segment#msa.ack_code, string, 2),
+      %% [2]
+      to_raw_value(Segment#msa.message_control_id, string, 20),
+          undefined, undefined, undefined,
+      [
+        [
+          %% [6,1,1]
+          to_raw_value(Segment#msa.error_code, string, 10),
+          %% [6,1,2]
+          to_raw_value(Segment#msa.error_text, string, 40)
+        ]
+      ]
+    ];
+%% @doc Encode the MSH (Message header) segment as a list
+encode_as_list(msh, Segment) ->
+    [
+      <<"MSH">>,
+      %% [1]
+      to_raw_value(Segment#msh.field_separator, string, 1),
+      %% [2]
+      to_raw_value(Segment#msh.encoding_characters, string, 4),
+      [
+        [
+          %% [3,1,1]
+          to_raw_value(Segment#msh.sending_application_id, string, 12)
+        ]
+      ],
+      [
+        [
+          %% [4,1,1]
+          to_raw_value(Segment#msh.sending_facility_id, string, 12),
+          %% [4,1,2]
+          to_raw_value(Segment#msh.sending_facility_universal_id, string, 20),
+          %% [4,1,3]
+          to_raw_value(Segment#msh.sending_facility_universal_id_type, string, 20)
+        ]
+      ],
+      [
+        [
+          %% [5,1,1]
+          to_raw_value(Segment#msh.receiving_application_id, string, 12)
+        ]
+      ],
+      [
+        [
+          %% [6,1,1]
+          to_raw_value(Segment#msh.receiving_facility_id, string, 12),
+          %% [6,1,2]
+          to_raw_value(Segment#msh.receiving_facility_universal_id, string, 20),
+          %% [6,1,3]
+          to_raw_value(Segment#msh.receiving_facility_universal_id_type, string, 20)
+        ]
+      ],
+      %% [7]
+      to_raw_value(Segment#msh.message_date, date, 14),
+          undefined,
+      [
+        [
+          %% [9,1,1]
+          to_raw_value(Segment#msh.message_type, string, 3),
+          %% [9,1,2]
+          to_raw_value(Segment#msh.trigger_event, string, 3),
+          %% [9,1,3]
+          to_raw_value(Segment#msh.message_structure, string, 7)
+        ]
+      ],
+      %% [10]
+      to_raw_value(Segment#msh.message_control_id, string, 20),
+      %% [11]
+      to_raw_value(Segment#msh.processing_id, string, 3),
+      %% [12]
+      to_raw_value(Segment#msh.version, string, 8),
+      undefined, undefined,
+      %% [15]
+      to_raw_value(Segment#msh.accept_ack_type, string, 2),
+      %% [16]
+      to_raw_value(Segment#msh.application_ack_type, string, 2),
+      %% [17]
+      to_raw_value(Segment#msh.country_code, string, 3)
+    ];
+%% @doc Encode the NTE (Notes and comments) segment as a list
+encode_as_list(nte, Segment) ->
+    [
+      <<"NTE">>,
+      %% [1]
+      to_raw_value(Segment#nte.set_id, integer, 4),
+      undefined,
+      %% [3]
+      to_raw_value(Segment#nte.comment, string, 512)
+    ];
+%% @doc Encode the PID (Patient information) segment as a list
+encode_as_list(pid, Segment) ->
+    [
+      <<"PID">>,
+      %% [1]
+      to_raw_value(Segment#pid.set_id, integer, 4),
+          undefined,
+      [
+        [
+          %% [3,1,1]
+          to_raw_value(Segment#pid.patient_id, string, 20),
+            undefined, undefined,
+          [
+            %% [3,1,4,1]
+            to_raw_value(Segment#pid.assigning_authority_id, string, 6),
+            %% [3,1,4,2]
+            to_raw_value(Segment#pid.assigning_authority_universal_id, string, 6),
+            %% [3,1,4,3]
+            to_raw_value(Segment#pid.assigning_authority_universal_id_type, string, 10)
+          ],
+          %% [3,1,5]
+          to_raw_value(Segment#pid.id_type, string, 2),
+          %% [3,2,1]
+          to_raw_value(Segment#pid.patient_document_id, string, 20),
+          undefined, undefined, undefined,
+          %% [3,2,5]
+          to_raw_value(Segment#pid.patient_document_id_type, string, 2)
+        ]
+      ],
+          undefined,
+      [
+        [
+          %% [5,1,1]
+          to_raw_value(Segment#pid.last_name, string, 25),
+          %% [5,1,2]
+          to_raw_value(Segment#pid.first_name, string, 25)
+        ]
+      ]
+    ];
+%% @doc Encode the PR1 (Procedure information) segment as a list
+encode_as_list(pr1, Segment) ->
+    [
+      <<"PR1">>,
+      %% [1]
+      to_raw_value(Segment#pr1.set_id, integer, 4),
+          undefined,
+      [
+        [
+          %% [3,1,1]
+          to_raw_value(Segment#pr1.procedure_id, string, 20),
+          %% [3,1,2]
+          to_raw_value(Segment#pr1.procedure_name, string, 30),
+          %% [3,1,3]
+          to_raw_value(Segment#pr1.coding_system, string, 4)
+        ]
+      ],
+      undefined,
+      %% [5]
+      to_raw_value(Segment#pr1.date, date, 14)
+    ];
+%% @doc Encode the PRD (Provider data) segment as a list
+encode_as_list(prd, Segment) ->
+    [
+      <<"PRD">>,
+      [
+        [
+          %% [1,1,1]
+          to_raw_value(Segment#prd.role_id, string, 5),
+          %% [1,1,2]
+          to_raw_value(Segment#prd.role_name, string, 30),
+          %% [1,1,3]
+          to_raw_value(Segment#prd.role_coding_system, string, 7),
+          %% [1,2,1]
+          to_raw_value(Segment#prd.specialty_id, string, 5),
+          %% [1,2,2]
+          to_raw_value(Segment#prd.specialty_name, string, 30),
+          %% [1,2,3]
+          to_raw_value(Segment#prd.specialty_coding_system, string, 7)
+        ]
+      ],
+      [
+        [
+          %% [2,1,1]
+          to_raw_value(Segment#prd.last_name, string, 40),
+          %% [2,1,2]
+          to_raw_value(Segment#prd.first_name, string, 30)
+        ]
+      ],
+      [
+        [
+          %% [3,1,1]
+          to_raw_value(Segment#prd.street, string, 20),
+          %% [3,1,2]
+          to_raw_value(Segment#prd.other_designation, string, 20),
+          %% [3,1,3]
+          to_raw_value(Segment#prd.city, string, 30),
+          %% [3,1,4]
+          to_raw_value(Segment#prd.state, string, 1),
+          %% [3,1,5]
+          to_raw_value(Segment#prd.postal_code, string, 10),
+          %% [3,1,6]
+          to_raw_value(Segment#prd.country_code, string, 3),
+          %% [3,1,7]
+          to_raw_value(Segment#prd.address_type, string, 1)
+        ]
+      ],
+          undefined, undefined, undefined,
+      [
+        [
+          %% [7,1,1]
+          to_raw_value(Segment#prd.provider_id, string, 15),
+          [
+            %% [7,1,2,1]
+            to_raw_value(Segment#prd.provider_id_type, string, 2),
+            %% [7,1,2,2]
+            to_raw_value(Segment#prd.provider_id_type_medical, string, 1),
+            %% [7,1,2,3]
+            to_raw_value(Segment#prd.provider_id_type_province, string, 1)
+          ],
+          %% [7,1,3]
+          to_raw_value(Segment#prd.provider_id_alternate_qualifier, string, 8)
+        ]
+      ]
+    ];
+%% @doc Encode the PV1 (Patient visit) segment as a list
+encode_as_list(pv1, Segment) ->
+    [
+      <<"PV1">>,
+      %% [1]
+      to_raw_value(Segment#pv1.set_id, string, 4),
+      %% [2]
+      to_raw_value(Segment#pv1.patient_class, string, 1),
+      [
+        [
+          %% [3,1,1]
+          to_raw_value(Segment#pv1.patient_point_of_care, string, 10),
+          undefined, undefined,
+          %% [3,1,4]
+          to_raw_value(Segment#pv1.patient_location_facility, string, 21)
+        ]
+      ],
+      %% [4]
+      to_raw_value(Segment#pv1.admission_type, string, 34),
+          undefined, undefined,
+      [
+        [
+          %% [7,1,1]
+          to_raw_value(Segment#pv1.attending_doctor_id, string, 20),
+          %% [7,1,2]
+          to_raw_value(Segment#pv1.attending_doctor_last_name, string, 25),
+          %% [7,1,3]
+          to_raw_value(Segment#pv1.attending_doctor_first_name, string, 25),
+          undefined, undefined, undefined, undefined, undefined,
+          %% [7,1,9]
+          to_raw_value(Segment#pv1.attending_doctor_assigning_authority, string, 21)
+        ]
+      ],
+      [
+        [
+          %% [8,1,1]
+          to_raw_value(Segment#pv1.referring_doctor_id, string, 20),
+          %% [8,1,2]
+          to_raw_value(Segment#pv1.referring_doctor_last_name, string, 25),
+          %% [8,1,3]
+          to_raw_value(Segment#pv1.referring_doctor_first_name, string, 25),
+          undefined, undefined, undefined, undefined, undefined,
+          %% [8,1,9]
+          to_raw_value(Segment#pv1.referring_doctor_assigning_authority, string, 21)
+        ]
+      ],
+      undefined,
+      %% [10]
+      to_raw_value(Segment#pv1.hospital_service, string, 99),
+      undefined, undefined,
+      %% [13]
+      to_raw_value(Segment#pv1.readmission_indicator, string, 2),
+      undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+      %% [36]
+      to_raw_value(Segment#pv1.discharge_diposition, string, 3),
+      undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+      %% [44]
+      to_raw_value(Segment#pv1.admit_date, date, 12),
+      %% [45]
+      to_raw_value(Segment#pv1.discharge_date, date, 12),
+      undefined, undefined, undefined, undefined, undefined,
+      %% [51]
+      to_raw_value(Segment#pv1.visit_indicator, string, 1)
+    ];
+%% @doc Encode the PV2 (Patient visit - additional information) segment as a list
+encode_as_list(pv2, Segment) ->
+    [
+      <<"PV2">>,
+          undefined, undefined, undefined,
+      [
+        [
+          %% [4,1,1]
+          to_raw_value(Segment#pv2.transfer_reason_id, string, 20)
+        ]
+      ]
+    ];
+%% @doc Encode the QAK (Query acknowledgment) segment as a list
+encode_as_list(qak, Segment) ->
+    [
+      <<"QAK">>,
+      %% [1]
+      to_raw_value(Segment#qak.query_tag, string, 32),
+      %% [2]
+      to_raw_value(Segment#qak.query_response_status, string, 4),
+      [
+        [
+          %% [3,1,1]
+          to_raw_value(Segment#qak.query_id, string, 14),
+          %% [3,1,2]
+          to_raw_value(Segment#qak.query_name, string, 30)
+        ]
+      ]
+    ];
+%% @doc Encode the QPD_Q15 (Query parameter definition -- procedure totals query) segment as a list
+encode_as_list(qpd_q15, Segment) ->
+    [
+      <<"QPD_Q15">>,
+      [
+        [
+          %% [1,1,1]
+          to_raw_value(Segment#qpd_q15.query_id, string, 20),
+          %% [1,1,2]
+          to_raw_value(Segment#qpd_q15.query_name, string, 30)
+        ]
+      ],
+      %% [2]
+      to_raw_value(Segment#qpd_q15.query_tag, string, 32),
+      [
+        [
+          %% [3,1,1]
+          to_raw_value(Segment#qpd_q15.provider_id, string, 15),
+          %% [3,1,2]
+          to_raw_value(Segment#qpd_q15.provider_id_type, string, 4)
+        ]
+      ],
+      %% [4]
+      to_raw_value(Segment#qpd_q15.start_date, date, 12),
+      %% [5]
+      to_raw_value(Segment#qpd_q15.end_date, date, 12),
+      [
+        [
+          %% [6,1,1]
+          to_raw_value(Segment#qpd_q15.procedure_id, string, 30),
+          %% [6,1,2]
+          to_raw_value(Segment#qpd_q15.procedure_coding_system, string, 8)
+        ]
+      ],
+      [
+        [
+          %% [7,1,1]
+          to_raw_value(Segment#qpd_q15.authorizer_id, string, 6)
+        ]
+      ]
+    ];
+%% @doc Encode the RCP (Response control parameter) segment as a list
+encode_as_list(rcp, Segment) ->
+    [
+      <<"RCP">>,
+      %% [1]
+      to_raw_value(Segment#rcp.query_priority, string, 1),
+      [
+        [
+          %% [2,1,1]
+          to_raw_value(Segment#rcp.response_limit, integer, 10),
+          [
+            %% [2,1,2,1]
+            to_raw_value(Segment#rcp.response_unit, string, 2)
+          ]
+        ]
+      ],
+      [
+        [
+          %% [3,1,1]
+          to_raw_value(Segment#rcp.response_modality_id, string, 10)
+        ]
+      ],
+      %% [4]
+      to_raw_value(Segment#rcp.execution_date, date, 12),
+      undefined,
+      %% [6]
+      to_raw_value(Segment#rcp.sort_by, string, 512)
+    ];
+%% @doc Encode the RF1 (Referral information) segment as a list
+encode_as_list(rf1, Segment) ->
+    [
+      <<"RF1">>,
+      [
+        [
+          %% [1,1,1]
+          to_raw_value(Segment#rf1.referral_status_id, string, 5),
+          %% [1,1,2]
+          to_raw_value(Segment#rf1.referral_status_description, string, 15)
+        ]
+      ],
+          undefined,
+      [
+        [
+          %% [3,1,1]
+          to_raw_value(Segment#rf1.referral_type_id, string, 5),
+          %% [3,1,2]
+          to_raw_value(Segment#rf1.referral_type_description, string, 15)
+        ]
+      ],
+          undefined, undefined,
+      [
+        [
+          %% [6,1,1]
+          to_raw_value(Segment#rf1.originating_referral_id, string, 15)
+        ]
+      ],
+      %% [7]
+      to_raw_value(Segment#rf1.effective_date, date, 12),
+      %% [8]
+      to_raw_value(Segment#rf1.expiration_date, date, 12),
+      %% [9]
+      to_raw_value(Segment#rf1.process_date, date, 12),
+      [
+        [
+          %% [10,1,1]
+          to_raw_value(Segment#rf1.referral_reason_id, string, 21)
+        ]
+      ]
+    ];
+%% @doc Encode the ZAU (Procedure authorization information) segment as a list
+encode_as_list(zau, Segment) ->
+    [
+      <<"ZAU">>,
+      [
+        [
+          %% [1,1,1]
+          to_raw_value(Segment#zau.prev_authorization_id, string, 15)
+        ]
+      ],
+      [
+        [
+          %% [2,1,1]
+          to_raw_value(Segment#zau.payor_control_id, string, 15)
+        ]
+      ],
+      [
+        [
+          %% [3,1,1]
+          to_raw_value(Segment#zau.authorization_status, string, 4),
+          %% [3,1,2]
+          to_raw_value(Segment#zau.authorization_status_text, string, 15)
+        ]
+      ],
+      [
+        [
+          %% [4,1,1]
+          to_raw_value(Segment#zau.pre_authorization_id, string, 15)
+        ]
+      ],
+      %% [5]
+      to_raw_value(Segment#zau.pre_authorization_date, string, 8),
+      [
+        [
+          [
+            %% [6,1,1,1]
+            to_raw_value(Segment#zau.copay, float, 10),
+            %% [6,1,1,2]
+            to_raw_value(Segment#zau.copay_currency, string, 10)
+          ]
+        ]
+      ]
+    ];
+%% @doc Encode the ZIN (Additional insurance information) segment as a list
+encode_as_list(zin, Segment) ->
+    [
+      <<"ZIN">>,
+      %% [1]
+      to_raw_value(Segment#zin.eligibility_indicator, string, 1),
+      [
+        [
+          %% [2,1,1]
+          to_raw_value(Segment#zin.patient_vat_status, string, 4),
+          %% [2,1,2]
+          to_raw_value(Segment#zin.patient_vat_status_text, string, 7)
+        ]
+      ]
+    ].
 
 
