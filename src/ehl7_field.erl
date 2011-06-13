@@ -130,8 +130,8 @@ from_raw_value(Value, float, _Length) ->
 
 
 -spec to_raw_value(ehl7:field() | undefined, ehl7:field_data_type(), ehl7:field_length()) -> ehl7:raw_field().
-to_raw_value(undefined, _DataType, _Length) ->
-    <<>>;
+to_raw_value(Value, _DataType, _Length) when Value =:= undefined; Value =:= <<>> ->
+    Value;
 to_raw_value(Value, string, _Length) ->
     Value;
 to_raw_value(Value, integer, _Length) ->

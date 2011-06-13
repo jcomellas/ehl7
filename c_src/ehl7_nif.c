@@ -72,6 +72,7 @@ ERL_NIF_INIT(ehl7, nif_funcs, load_nif, reload_nif, upgrade_nif, unload_nif)
 
 typedef struct Decode_State_Struct {
     ErlNifEnv *env;
+    ERL_NIF_TERM undefined_atom;
     ERL_NIF_TERM term[HL7_ELEMENT_TYPE_COUNT + 1][MAX_ELEMENT_DEPTH];
     int term_count[HL7_ELEMENT_TYPE_COUNT + 1];
 #ifndef NDEBUG
@@ -133,6 +134,7 @@ static ERL_NIF_TERM raw_decode(ErlNifEnv *env, int argc, const ERL_NIF_TERM *arg
     hl7_parser_cb_init(&parser, &callback, &settings);
     memset(&state, 0, sizeof (state));
     state.env = env;
+    state.undefined_atom = enif_make_atom(env, "undefined");
     hl7_parser_set_user_data(&parser, &state);
 
     /* Set the parser callbacks. */
@@ -282,13 +284,16 @@ static int end_element(HL7_Parser *parser, HL7_Element_Type element_type)
     }
     else /* if (state->term_count[element_type] == 0) */
     {
-        ErlNifBinary empty_binary;
+        /* ErlNifBinary empty_binary; */
 
-        DEBUG("adding empty binary to parent\n");
+        DEBUG("adding 'undefined' atom to parent\n");
 
         /* There were no elements; add an empty binary to the parent element */
+        /*
         enif_alloc_binary(0, &empty_binary);
         term = enif_make_binary(state->env, &empty_binary);
+        */
+        term = state->undefined_atom;
     }
     state->term[parent_type][state->term_count[parent_type]] = term;
     ++state->term_count[parent_type];
