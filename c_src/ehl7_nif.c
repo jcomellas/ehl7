@@ -412,10 +412,16 @@ static int characters(HL7_Parser *parser, HL7_Element_Type element_type, HL7_Ele
     DEBUG3("  %.*s (%u bytes): ", (unsigned) element->length, (element->value != NULL ? element->value : "<NULL>"),
            (int) element->length);
 
-    enif_alloc_binary(element->length, &binary);
-    memcpy(binary.data, element->value, element->length);
-    term = enif_make_binary(state->env, &binary);
-
+    if (!hl7_element_is_empty(element))
+    {
+        enif_alloc_binary(element->length, &binary);
+        memcpy(binary.data, element->value, element->length);
+        term = enif_make_binary(state->env, &binary);
+    }
+    else
+    {
+        term = state->undefined_atom;
+    }
     state->term[element_type][state->term_count[element_type]] = term;
     ++state->term_count[element_type];
 
