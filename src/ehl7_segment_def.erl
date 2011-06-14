@@ -213,17 +213,18 @@ codegen_element_encoder(SegmentId, StartBrace, EndBrace, PrevIndex, [{Name, _Typ
     %% io:format("Generating encoder for element ~s.~s (EndBraceCount=~w, StartBraceCount=~w, Depth=~w, Missing=~w)~n",
     %%           [SegmentId, Name, EndBraceCount, StartBraceCount, Depth, MissingCount]),
     Indentation = indentation(Depth),
-    Separator = case PrevIndex of
-                    [0] ->
-                        <<>>;
-                    _ ->
-                        add_ending_separator(EndBraceCount, [])
-                end,
+    {PrevDepth, Separator} = case PrevIndex of
+                                 [0] ->
+                                     {1, <<>>};
+                                 _ ->
+                                     {length(PrevIndex), add_ending_separator(EndBraceCount, [])}
+                             end,
     MissingElements = case MissingCount of
                           0 ->
                               [];
                           _ ->
-                              [Indentation, <<"undefined">>, lists:duplicate(MissingCount - 1, <<", undefined">>), <<",\n">>]
+                              [indentation(PrevDepth - EndBraceCount), <<"undefined">>,
+                               lists:duplicate(MissingCount - 1, <<", undefined">>), <<",\n">>]
                       end,
     Encoder = [
                Separator,

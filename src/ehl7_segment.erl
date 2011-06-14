@@ -338,7 +338,7 @@ encode_as_tuple(dg1, Segment) ->
       <<"DG1">>,
       %% [1]
       to_raw_value(Segment#dg1.set_id, integer, 4),
-          undefined,
+      undefined,
       {
         {
           %% [3,1,1]
@@ -426,7 +426,7 @@ encode_as_tuple(in1, Segment) ->
         {
           %% [3,1,1]
           to_raw_value(Segment#in1.company_id, string, 6),
-            undefined, undefined,
+          undefined, undefined,
           {
             %% [3,1,4,1]
             to_raw_value(Segment#in1.company_assigning_authority_id, string, 10),
@@ -436,7 +436,7 @@ encode_as_tuple(in1, Segment) ->
           }
         }
       },
-          undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+      undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
       {
         {
           %% [14,1,1]
@@ -454,7 +454,7 @@ encode_as_tuple(msa, Segment) ->
       to_raw_value(Segment#msa.ack_code, string, 2),
       %% [2]
       to_raw_value(Segment#msa.message_control_id, string, 20),
-          undefined, undefined, undefined,
+      undefined, undefined, undefined,
       {
         {
           %% [6,1,1]
@@ -506,7 +506,7 @@ encode_as_tuple(msh, Segment) ->
       },
       %% [7]
       to_raw_value(Segment#msh.message_date, date, 14),
-          undefined,
+      undefined,
       {
         {
           %% [9,1,1]
@@ -547,12 +547,12 @@ encode_as_tuple(pid, Segment) ->
       <<"PID">>,
       %% [1]
       to_raw_value(Segment#pid.set_id, integer, 4),
-          undefined,
+      undefined,
       {
         {
           %% [3,1,1]
           to_raw_value(Segment#pid.patient_id, string, 20),
-            undefined, undefined,
+          undefined, undefined,
           {
             %% [3,1,4,1]
             to_raw_value(Segment#pid.assigning_authority_id, string, 6),
@@ -570,7 +570,7 @@ encode_as_tuple(pid, Segment) ->
           to_raw_value(Segment#pid.patient_document_id_type, string, 2)
         }
       },
-          undefined,
+      undefined,
       {
         {
           %% [5,1,1]
@@ -586,7 +586,7 @@ encode_as_tuple(pr1, Segment) ->
       <<"PR1">>,
       %% [1]
       to_raw_value(Segment#pr1.set_id, integer, 4),
-          undefined,
+      undefined,
       {
         {
           %% [3,1,1]
@@ -647,7 +647,7 @@ encode_as_tuple(prd, Segment) ->
           to_raw_value(Segment#prd.address_type, string, 1)
         }
       },
-          undefined, undefined, undefined,
+      undefined, undefined, undefined,
       {
         {
           %% [7,1,1]
@@ -684,7 +684,7 @@ encode_as_tuple(pv1, Segment) ->
       },
       %% [4]
       to_raw_value(Segment#pv1.admission_type, string, 34),
-          undefined, undefined,
+      undefined, undefined,
       {
         {
           %% [7,1,1]
@@ -733,7 +733,7 @@ encode_as_tuple(pv1, Segment) ->
 encode_as_tuple(pv2, Segment) ->
     {
       <<"PV2">>,
-          undefined, undefined, undefined,
+      undefined, undefined, undefined,
       {
         {
           %% [4,1,1]
@@ -839,7 +839,7 @@ encode_as_tuple(rf1, Segment) ->
           to_raw_value(Segment#rf1.referral_status_description, string, 15)
         }
       },
-          undefined,
+      undefined,
       {
         {
           %% [3,1,1]
@@ -848,7 +848,7 @@ encode_as_tuple(rf1, Segment) ->
           to_raw_value(Segment#rf1.referral_type_description, string, 15)
         }
       },
-          undefined, undefined,
+      undefined, undefined,
       {
         {
           %% [6,1,1]
@@ -973,7 +973,7 @@ encode_as_list(dg1, Segment) ->
       <<"DG1">>,
       %% [1]
       to_raw_value(Segment#dg1.set_id, integer, 4),
-          undefined,
+      undefined,
       [
         [
           %% [3,1,1]
@@ -1061,7 +1061,7 @@ encode_as_list(in1, Segment) ->
         [
           %% [3,1,1]
           to_raw_value(Segment#in1.company_id, string, 6),
-            undefined, undefined,
+          undefined, undefined,
           [
             %% [3,1,4,1]
             to_raw_value(Segment#in1.company_assigning_authority_id, string, 10),
@@ -1071,7 +1071,7 @@ encode_as_list(in1, Segment) ->
           ]
         ]
       ],
-          undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+      undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
       [
         [
           %% [14,1,1]
@@ -1089,7 +1089,7 @@ encode_as_list(msa, Segment) ->
       to_raw_value(Segment#msa.ack_code, string, 2),
       %% [2]
       to_raw_value(Segment#msa.message_control_id, string, 20),
-          undefined, undefined, undefined,
+      undefined, undefined, undefined,
       [
         [
           %% [6,1,1]
@@ -1141,7 +1141,7 @@ encode_as_list(msh, Segment) ->
       ],
       %% [7]
       to_raw_value(Segment#msh.message_date, date, 14),
-          undefined,
+      undefined,
       [
         [
           %% [9,1,1]
@@ -1182,12 +1182,12 @@ encode_as_list(pid, Segment) ->
       <<"PID">>,
       %% [1]
       to_raw_value(Segment#pid.set_id, integer, 4),
-          undefined,
+      undefined,
       [
         [
           %% [3,1,1]
           to_raw_value(Segment#pid.patient_id, string, 20),
-            undefined, undefined,
+          undefined, undefined,
           [
             %% [3,1,4,1]
             to_raw_value(Segment#pid.assigning_authority_id, string, 6),
@@ -1205,7 +1205,7 @@ encode_as_list(pid, Segment) ->
           to_raw_value(Segment#pid.patient_document_id_type, string, 2)
         ]
       ],
-          undefined,
+      undefined,
       [
         [
           %% [5,1,1]
@@ -1221,7 +1221,7 @@ encode_as_list(pr1, Segment) ->
       <<"PR1">>,
       %% [1]
       to_raw_value(Segment#pr1.set_id, integer, 4),
-          undefined,
+      undefined,
       [
         [
           %% [3,1,1]
@@ -1282,7 +1282,7 @@ encode_as_list(prd, Segment) ->
           to_raw_value(Segment#prd.address_type, string, 1)
         ]
       ],
-          undefined, undefined, undefined,
+      undefined, undefined, undefined,
       [
         [
           %% [7,1,1]
@@ -1319,7 +1319,7 @@ encode_as_list(pv1, Segment) ->
       ],
       %% [4]
       to_raw_value(Segment#pv1.admission_type, string, 34),
-          undefined, undefined,
+      undefined, undefined,
       [
         [
           %% [7,1,1]
@@ -1368,7 +1368,7 @@ encode_as_list(pv1, Segment) ->
 encode_as_list(pv2, Segment) ->
     [
       <<"PV2">>,
-          undefined, undefined, undefined,
+      undefined, undefined, undefined,
       [
         [
           %% [4,1,1]
@@ -1474,7 +1474,7 @@ encode_as_list(rf1, Segment) ->
           to_raw_value(Segment#rf1.referral_status_description, string, 15)
         ]
       ],
-          undefined,
+      undefined,
       [
         [
           %% [3,1,1]
@@ -1483,7 +1483,7 @@ encode_as_list(rf1, Segment) ->
           to_raw_value(Segment#rf1.referral_type_description, string, 15)
         ]
       ],
-          undefined, undefined,
+      undefined, undefined,
       [
         [
           %% [6,1,1]
