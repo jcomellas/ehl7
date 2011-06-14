@@ -18,6 +18,7 @@
 #include <hl7parser/token.h>
 #include <hl7parser/cbparser.h>
 #include <erl_nif.h>
+#include <alloca.h>
 #include <string.h>
 #include <stdio.h>
 
@@ -26,12 +27,13 @@
    Defines
    ------------------------------------------------------------------------ */
 
-#define MAX_ELEMENT_DEPTH 256
+#define MAX_ELEMENT_DEPTH  256
+#define BUFFER_SIZE        (8 * 1024)
+
 #ifdef __GNUC__
 #define UNUSED __attribute__ ((__unused__))
 #endif
 #ifndef NDEBUG
-#define LOGFILE "ehl7.log"
 #define DEBUG(fmt)  fprintf(state->log, fmt)
 #define DEBUG1(fmt, a1)  fprintf(state->log, fmt, a1)
 #define DEBUG2(fmt, a1, a2)  fprintf(state->log, fmt, a1, a2)
@@ -45,6 +47,26 @@ static char *element_type_name(const HL7_Element_Type element_type);
 #define DEBUG3(fmt, a1, a2, a3)
 #define DEBUG4(fmt, a1, a2, a3, a4)
 #endif
+
+typedef struct Decode_State_Struct {
+    ErlNifEnv *env;
+    ERL_NIF_TERM undefined_atom;
+    ERL_NIF_TERM term[HL7_ELEMENT_TYPE_COUNT + 1][MAX_ELEMENT_DEPTH];
+    int term_count[HL7_ELEMENT_TYPE_COUNT + 1];
+#ifndef NDEBUG
+    FILE *log;
+#endif
+} Decode_State;
+
+typedef struct Encode_State_Struct {
+    ErlNifEnv *env;
+    ERL_NIF_TERM undefined_atom;
+    ERL_NIF_TERM term[HL7_ELEMENT_TYPE_COUNT + 1][MAX_ELEMENT_DEPTH];
+    int term_count[HL7_ELEMENT_TYPE_COUNT + 1];
+#ifndef NDEBUG
+    FILE *log;
+#endif
+} Encode_State;
 
 
 static int load_nif(UNUSED ErlNifEnv* env, UNUSED void** priv_data, UNUSED ERL_NIF_TERM load_info);
@@ -60,7 +82,17 @@ static int end_document(HL7_Parser *parser);
 static int start_element(HL7_Parser *parser, HL7_Element_Type element_type);
 static int end_element(HL7_Parser *parser, HL7_Element_Type element_type);
 static int characters(HL7_Parser *parser, HL7_Element_Type element_type, HL7_Element *element);
+
+static int encode_segment(Encode_State *state, HL7_Parser *parser, HL7_Allocator *allocator,
+                          HL7_Buffer *buffer, ERL_NIF_TERM parent);
+static int encode_tuple(Encode_State *state, HL7_Segment *segment, HL7_Element_Type element_type, size_t *index,
+                        int tuple_size, const ERL_NIF_TERM *tuple);
+static int set_element(HL7_Segment *segment, HL7_Element_Type element_type, size_t *index, HL7_Element *element);
+
+static ERL_NIF_TERM nif_error(ErlNifEnv *env, const char *reason);
+static ERL_NIF_TERM nif_error_data(ErlNifEnv *env, const char *reason, ERL_NIF_TERM data);
 static int parent(HL7_Element_Type element_type);
+static char *element_type_name(const HL7_Element_Type element_type);
 
 
 static ErlNifFunc nif_funcs[] = {
@@ -69,16 +101,6 @@ static ErlNifFunc nif_funcs[] = {
 };
 
 ERL_NIF_INIT(ehl7, nif_funcs, load_nif, reload_nif, upgrade_nif, unload_nif)
-
-typedef struct Decode_State_Struct {
-    ErlNifEnv *env;
-    ERL_NIF_TERM undefined_atom;
-    ERL_NIF_TERM term[HL7_ELEMENT_TYPE_COUNT + 1][MAX_ELEMENT_DEPTH];
-    int term_count[HL7_ELEMENT_TYPE_COUNT + 1];
-#ifndef NDEBUG
-    FILE *log;
-#endif
-} Decode_State;
 
 
 /* ------------------------------------------------------------------------ */
@@ -163,9 +185,79 @@ static ERL_NIF_TERM raw_decode(ErlNifEnv *env, int argc, const ERL_NIF_TERM *arg
 
 
 /* ------------------------------------------------------------------------ */
-ERL_NIF_TERM raw_encode(ErlNifEnv *env, UNUSED int argc, UNUSED const ERL_NIF_TERM *argv)
+ERL_NIF_TERM raw_encode(ErlNifEnv *env, int argc, const ERL_NIF_TERM *argv)
 {
-    return enif_make_atom(env, "not_implemented");
+    ERL_NIF_TERM        result;
+    ErlNifBinary        bin;
+    HL7_Settings        settings;
+    HL7_Allocator       allocator;
+    HL7_Buffer          buffer;
+    HL7_Parser          parser;
+    ERL_NIF_TERM        list, head, tail;
+    Encode_State        state;
+
+    if (argc != 1 || !enif_is_list(env, argv[0]))
+    {
+        return enif_make_badarg(env);
+    }
+    if (!enif_alloc_binary(BUFFER_SIZE, &bin))
+    {
+        return nif_error(env, "enomem");
+    }
+
+    hl7_settings_init(&settings);
+    /* Initialize the memory allocator. */
+    hl7_allocator_init(&allocator, malloc, free);
+    /* Initialize the output buffer. */
+    hl7_buffer_init(&buffer, (char *) bin.data, bin.size);
+    /* Initialize the parser. */
+    hl7_parser_init(&parser, &settings);
+
+    memset(&state, 0, sizeof (state));
+    state.env = env;
+
+#ifndef NDEBUG
+    state.log = fopen("ehl7_encode.log", "a");
+    if (state.log == NULL)
+    {
+        fprintf(stderr, "Could not open log file 'ehl7_encode.log'\n");
+    }
+#endif
+
+    for (list = argv[0]; enif_get_list_cell(env, list, &head, &tail); list = tail)
+    {
+        if (encode_segment(&state, &parser, &allocator, &buffer, head) != 0)
+        {
+            result = nif_error_data(env, "invalid_segment", head);
+            goto error;
+        }
+    }
+
+    if (enif_realloc_binary(&bin, hl7_buffer_length(&buffer)))
+    {
+        result = enif_make_binary(env, &bin);
+    }
+    else
+    {
+        enif_release_binary(&bin);
+        result = nif_error(env, "enomem");
+    }
+
+error:
+#ifndef NDEBUG
+    if (state.log != NULL)
+    {
+        fclose(state.log);
+    }
+    state.log = NULL;
+#endif
+
+    hl7_parser_fini(&parser);
+    hl7_buffer_fini(&buffer);
+    hl7_allocator_fini(&allocator);
+    hl7_settings_fini(&settings);
+
+    return result;
 }
 
 
@@ -185,14 +277,14 @@ static int start_document(UNUSED HL7_Parser *parser)
 
     state = (Decode_State *) parser->user_data;
 
-    state->log = fopen(LOGFILE, "a");
+    state->log = fopen("ehl7_decode.log", "a");
     if (state->log != NULL)
     {
         DEBUG("Started parsing HL7 message (callback)\n");
     }
     else
     {
-        fprintf(stderr, "Could not open log file '" LOGFILE "'\n");
+        fprintf(stderr, "Could not open log file 'ehl7_decode.log'\n");
         rc = -1;
     }
 #endif
@@ -333,6 +425,147 @@ static int characters(HL7_Parser *parser, HL7_Element_Type element_type, HL7_Ele
 
 
 /* ------------------------------------------------------------------------ */
+static int encode_segment(Encode_State *state, HL7_Parser *parser, HL7_Allocator *allocator,
+                          HL7_Buffer *buffer, ERL_NIF_TERM current)
+{
+    int                 rc = -1;
+    int                 tuple_size;
+    const ERL_NIF_TERM  *tuple;
+    ErlNifBinary        segment_id;
+    HL7_Segment         segment;
+    HL7_Element_Type    element_type = HL7_ELEMENT_FIELD;
+    size_t              index[HL7_ELEMENT_TYPE_COUNT];
+
+    if (enif_get_tuple(state->env, current, &tuple_size, &tuple))
+    {
+        if (enif_inspect_binary(state->env, tuple[0], &segment_id))
+        {
+            char *segment_id_str = (char *) alloca(segment_id.size + 1);
+
+            memcpy(segment_id_str, segment_id.data, segment_id.size);
+            segment_id_str[segment_id.size] = '\0';
+
+            memset(index, 0, sizeof (index));
+
+            DEBUG1("Encoding segment %s\n", segment_id_str);
+            if (hl7_segment_create(&segment, segment_id_str, allocator) == 0)
+            {
+                /* Skip over the segment ID when encoding the tuple representing the segment */
+                if (encode_tuple(state, &segment, element_type, index, tuple_size - 1, tuple + 1) == 0)
+                {
+                    rc = hl7_parser_write_segment(parser, buffer, &segment);
+                }
+            }
+        }
+    }
+    return rc;
+}
+
+
+/* ------------------------------------------------------------------------ */
+static int encode_tuple(Encode_State *state, HL7_Segment *segment, HL7_Element_Type element_type, size_t *index,
+                        int tuple_size, const ERL_NIF_TERM *tuple)
+{
+    int rc = 0;
+
+    if (element_type >= 0 && element_type < HL7_ELEMENT_TYPE_COUNT)
+    {
+        ErlNifBinary bin;
+        HL7_Element element;
+        int child_size;
+        const ERL_NIF_TERM *child;
+        int i;
+
+        for (i = 0; i < tuple_size; ++i)
+        {
+            /* Set the index of the current element */
+            index[element_type] = i;
+
+            if (enif_inspect_binary(state->env, tuple[i], &bin))
+            {
+                hl7_element_set_ptr(&element, (char *) bin.data, bin.size, false);
+                DEBUG4("  %s %d: %s (binary, %u bytes)\n", element_type_name(element_type), i,
+                       (element.value != NULL ? element.value : "<NULL>"), (unsigned) element.length);
+                set_element(segment, element_type, index, &element);
+            }
+            else if (enif_is_tuple(state->env, tuple[i]))
+            {
+                if (enif_get_tuple(state->env, tuple[i], &child_size, &child))
+                {
+                    DEBUG3("  %s %d: %u elements (tuple)\n", element_type_name(element_type), i, (unsigned) child_size);
+                    encode_tuple(state, segment, hl7_child_type(element_type), index, child_size, child);
+                }
+                else
+                {
+                    rc = -1;
+                    break;
+                }
+            }
+            else /* if (enif_is_atom(state->env, tuple[i])) */
+            {
+                DEBUG2("  %s %d: skipping; atom or invalid type\n", element_type_name(element_type), i);
+                /* Atoms are copied as empty elements, as the only atom we allow is 'undefined' */
+                hl7_element_set_ptr(&element, NULL, 0, false);
+                if (set_element(segment, element_type, index, &element) != 0)
+                {
+                    rc = -1;
+                    break;
+                }
+            }
+        }
+    }
+    else
+    {
+        rc = -1;
+    }
+    return rc;
+}
+
+
+/* ------------------------------------------------------------------------ */
+static int set_element(HL7_Segment *segment, HL7_Element_Type element_type, size_t *index, HL7_Element *element)
+{
+    int rc = 0;
+
+    switch (element_type)
+    {
+    case HL7_ELEMENT_FIELD:
+        rc = hl7_segment_set_field(segment, index[HL7_ELEMENT_FIELD], element);
+        break;
+    case HL7_ELEMENT_REPETITION:
+        rc = hl7_segment_set_repetition(segment, index[HL7_ELEMENT_FIELD], index[HL7_ELEMENT_REPETITION], element);
+        break;
+    case HL7_ELEMENT_COMPONENT:
+        rc = hl7_segment_set_component_rep(segment, index[HL7_ELEMENT_FIELD], index[HL7_ELEMENT_REPETITION],
+                                           index[HL7_ELEMENT_COMPONENT], element);
+        break;
+    case HL7_ELEMENT_SUBCOMPONENT:
+        rc = hl7_segment_set_subcomponent_rep(segment, index[HL7_ELEMENT_FIELD], index[HL7_ELEMENT_REPETITION],
+                                              index[HL7_ELEMENT_COMPONENT], index[HL7_ELEMENT_SUBCOMPONENT], element);
+        break;
+    default:
+        rc = -1;
+    }
+    return rc;
+}
+
+
+/* ------------------------------------------------------------------------ */
+static ERL_NIF_TERM nif_error(ErlNifEnv *env, const char *reason)
+{
+    return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_atom(env, reason));
+}
+
+
+/* ------------------------------------------------------------------------ */
+static ERL_NIF_TERM nif_error_data(ErlNifEnv *env, const char *reason, ERL_NIF_TERM data)
+{
+    return enif_make_tuple2(env, enif_make_atom(env, "error"),
+                            enif_make_tuple2(env, enif_make_atom(env, reason), data));
+}
+
+
+/* ------------------------------------------------------------------------ */
 static int parent(HL7_Element_Type element_type)
 {
     HL7_ASSERT(element_type <= HL7_ELEMENT_SEGMENT);
@@ -347,11 +580,11 @@ static int parent(HL7_Element_Type element_type)
 static char *element_type_name(const HL7_Element_Type element_type)
 {
     static char *ELEMENT_TYPE_NAME[HL7_ELEMENT_TYPE_COUNT] = {
-        "Subcomponent",
-        "Component",
-        "Repetition",
-        "Field",
-        "Segment"
+        "subcomponent",
+        "component",
+        "repetition",
+        "field",
+        "segment"
     };
 
     return (element_type < HL7_ELEMENT_TYPE_COUNT ? ELEMENT_TYPE_NAME[(int) element_type] : "Unknown");

@@ -14,6 +14,7 @@
 -export([decode/2, encode/2, raw_encode/1]).
 -export([segment/2, segment/3, segment_count/2]).
 -export([field/2, field/4]).
+-export([dump/1]).
 
 -export_type([raw_msg/0, msg/0, raw_segment_id/0, segment_id/0, raw_segment/0, segment/0,
               raw_field/0, field/0, field_index/0, field_data_type/0, field_length/0]).
@@ -63,19 +64,19 @@ decode(Buffer, Options) ->
 
 -spec encode(Msg :: msg(), [encode_option()]) -> {ok, iolist()} | {error, Reason :: any()}.
 encode(Msg, Options) ->
-    %% RawMsg =
-    case lists:member(raw, Options) of
-        true ->
-            Msg;
-        false ->
-            case lists:member(no_simplify, Options) of
-                true ->
-                    encode_msg(Msg, []);
-                false ->
-                    encode_and_simplify_msg(Msg, [])
-            end
-    end. %%,
-    %% raw_encode(RawMsg).
+    RawMsg =
+        case lists:member(raw, Options) of
+            true ->
+                Msg;
+            false ->
+                case lists:member(no_simplify, Options) of
+                    true ->
+                        encode_msg(Msg, []);
+                    false ->
+                        encode_and_simplify_msg(Msg, [])
+                end
+        end,
+    raw_encode(RawMsg).
 
 
 -spec segment(segment_id(), raw_msg()) -> raw_segment() | undefined.
@@ -125,6 +126,19 @@ field(Index, DataType, Length, Segment) ->
 -spec field(field_index(), raw_segment()) -> raw_field() | undefined.
 field(Index, Segment) ->
     ehl7_field:get_field(Index, Segment).
+
+
+-spec dump(binary()) -> binary().
+dump(Buffer) ->
+    dump(Buffer, <<>>).
+
+dump(<<$\r, Tail/binary>>, Acc) ->
+    dump(Tail, <<Acc/binary, "\\r\n">>);
+dump(<<Char, Tail/binary>>, Acc) ->
+    dump(Tail, <<Acc/binary, Char>>);
+dump(<<>>, Acc) ->
+    Acc.
+
 
 
 %%%===================================================================
