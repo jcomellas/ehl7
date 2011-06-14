@@ -92,7 +92,6 @@ static int set_element(HL7_Segment *segment, HL7_Element_Type element_type, size
 static ERL_NIF_TERM nif_error(ErlNifEnv *env, const char *reason);
 static ERL_NIF_TERM nif_error_data(ErlNifEnv *env, const char *reason, ERL_NIF_TERM data);
 static int parent(HL7_Element_Type element_type);
-static char *element_type_name(const HL7_Element_Type element_type);
 
 
 static ErlNifFunc nif_funcs[] = {
