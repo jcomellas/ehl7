@@ -110,6 +110,7 @@ segment(SegmentId, [Segment | Tail], Repetition) ->
 segment(_SegmentId, [], _Repetition) ->
     undefined.
 
+
 -spec segment_count(raw_segment_id() | segment_id(), raw_msg() | msg()) -> non_neg_integer().
 segment_count(SegmentId, Msg) ->
     segment_count(SegmentId, Msg, 0).
@@ -130,7 +131,6 @@ segment_count(_SegmentId, [], Count) ->
 field(Index, DataType, Length, Segment) ->
     ehl7_field:field(Index, DataType, Length, Segment).
 
-
 -spec field(field_index(), raw_segment()) -> raw_field() | undefined.
 field(Index, Segment) ->
     ehl7_field:field(Index, Segment).
@@ -139,7 +139,6 @@ field(Index, Segment) ->
 -spec repetition(field_index(), field_data_type(), field_length(), raw_segment()) -> field() | undefined.
 repetition(Index, DataType, Length, Segment) ->
     ehl7_field:repetition(Index, DataType, Length, Segment).
-
 
 -spec repetition(field_index(), raw_segment()) -> raw_field() | undefined.
 repetition(Index, Segment) ->
@@ -150,7 +149,6 @@ repetition(Index, Segment) ->
 component(Index, DataType, Length, Segment) ->
     ehl7_field:component(Index, DataType, Length, Segment).
 
-
 -spec component(field_index(), raw_segment()) -> raw_field() | undefined.
 component(Index, Segment) ->
     ehl7_field:component(Index, Segment).
@@ -159,7 +157,6 @@ component(Index, Segment) ->
 -spec subcomponent(field_index(), field_data_type(), field_length(), raw_segment()) -> field() | undefined.
 subcomponent(Index, DataType, Length, Segment) ->
     ehl7_field:subcomponent(Index, DataType, Length, Segment).
-
 
 -spec subcomponent(field_index(), raw_segment()) -> raw_field() | undefined.
 subcomponent(Index, Segment) ->
