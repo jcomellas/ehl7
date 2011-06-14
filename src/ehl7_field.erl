@@ -10,56 +10,56 @@
 -module(ehl7_field).
 -author('Juan Jose Comellas <jcomellas@erlar.com>').
 
--export([get_field/2, get_field/4,
-         get_repetition/2, get_repetition/4,
-         get_component/2, get_component/4,
-         get_subcomponent/2, get_subcomponent/4,
+-export([field/2, field/4,
+         repetition/2, repetition/4,
+         component/2, component/4,
+         subcomponent/2, subcomponent/4,
          get_element/2, get_element/4,
          from_raw_value/3,
          to_raw_value/3]).
 
 
--spec get_field(ehl7:field_index(), ehl7:raw_segment()) -> ehl7:field() | undefined.
-get_field(Index, Segment) ->
+-spec field(ehl7:field_index(), ehl7:raw_segment()) -> ehl7:field() | undefined.
+field(Index, Segment) ->
     get_element(Index, Segment).
 
--spec get_field(ehl7:field_index(), ehl7:field_data_type(), ehl7:field_length(), ehl7:raw_segment()) -> ehl7:field() | undefined.
-get_field(Index, DataType, Length, Segment) ->
+-spec field(ehl7:field_index(), ehl7:field_data_type(), ehl7:field_length(), ehl7:raw_segment()) -> ehl7:field() | undefined.
+field(Index, DataType, Length, Segment) ->
     get_element(Index, DataType, Length, Segment).
 
 
--spec get_repetition(ehl7:field_index(), ehl7:raw_segment()) -> ehl7:field() | undefined.
-get_repetition([_FieldIndex, _RepIndex] = Index, Segment) ->
+-spec repetition(ehl7:field_index(), ehl7:raw_segment()) -> ehl7:field() | undefined.
+repetition([_FieldIndex, _RepIndex] = Index, Segment) ->
     get_element(Index, Segment).
 
--spec get_repetition(ehl7:field_index(), ehl7:field_data_type(), ehl7:field_length(), ehl7:raw_segment()) -> ehl7:field() | undefined.
-get_repetition([_FieldIndex, _RepIndex] = Index, DataType, Length, Segment) ->
+-spec repetition(ehl7:field_index(), ehl7:field_data_type(), ehl7:field_length(), ehl7:raw_segment()) -> ehl7:field() | undefined.
+repetition([_FieldIndex, _RepIndex] = Index, DataType, Length, Segment) ->
     get_element(Index, DataType, Length, Segment).
 
 
--spec get_component(ehl7:field_index(), ehl7:raw_segment()) -> ehl7:field() | undefined.
-get_component([FieldIndex, CompIndex], Segment) ->
+-spec component(ehl7:field_index(), ehl7:raw_segment()) -> ehl7:field() | undefined.
+component([FieldIndex, CompIndex], Segment) ->
     get_element([FieldIndex, 1, CompIndex], Segment);
-get_component([_FieldIndex, _RepIndex, _CompIndex] = Index, Segment) ->
+component([_FieldIndex, _RepIndex, _CompIndex] = Index, Segment) ->
     get_element(Index, Segment).
 
--spec get_component(ehl7:field_index(), ehl7:field_data_type(), ehl7:field_length(), ehl7:raw_segment()) -> ehl7:field() | undefined.
-get_component([FieldIndex, CompIndex], DataType, Length, Segment) ->
+-spec component(ehl7:field_index(), ehl7:field_data_type(), ehl7:field_length(), ehl7:raw_segment()) -> ehl7:field() | undefined.
+component([FieldIndex, CompIndex], DataType, Length, Segment) ->
     get_element([FieldIndex, 1, CompIndex], DataType, Length, Segment);
-get_component([_FieldIndex, _RepIndex, _CompIndex] = Index, DataType, Length, Segment) ->
+component([_FieldIndex, _RepIndex, _CompIndex] = Index, DataType, Length, Segment) ->
     get_element(Index, DataType, Length, Segment).
 
 
--spec get_subcomponent(ehl7:field_index(), ehl7:raw_segment()) -> ehl7:field() | undefined.
-get_subcomponent([FieldIndex, CompIndex, SubcompIndex], Segment) ->
+-spec subcomponent(ehl7:field_index(), ehl7:raw_segment()) -> ehl7:field() | undefined.
+subcomponent([FieldIndex, CompIndex, SubcompIndex], Segment) ->
     get_element([FieldIndex, 1, CompIndex, SubcompIndex], Segment);
-get_subcomponent([_FieldIndex, _RepIndex, _CompIndex, _SubcompIndex] = Index, Segment) ->
+subcomponent([_FieldIndex, _RepIndex, _CompIndex, _SubcompIndex] = Index, Segment) ->
     get_element(Index, Segment).
 
--spec get_subcomponent(ehl7:field_index(), ehl7:field_data_type(), ehl7:field_length(), ehl7:raw_segment()) -> ehl7:field() | undefined.
-get_subcomponent([FieldIndex, CompIndex, SubcompIndex], DataType, Length, Segment) ->
+-spec subcomponent(ehl7:field_index(), ehl7:field_data_type(), ehl7:field_length(), ehl7:raw_segment()) -> ehl7:field() | undefined.
+subcomponent([FieldIndex, CompIndex, SubcompIndex], DataType, Length, Segment) ->
     get_element([FieldIndex, 1, CompIndex, SubcompIndex], DataType, Length, Segment);
-get_subcomponent([_FieldIndex, _RepIndex, _CompIndex, _SubcompIndex] = Index, DataType, Length, Segment) ->
+subcomponent([_FieldIndex, _RepIndex, _CompIndex, _SubcompIndex] = Index, DataType, Length, Segment) ->
     get_element(Index, DataType, Length, Segment).
 
 

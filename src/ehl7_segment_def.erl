@@ -112,7 +112,7 @@ codegen_segment_source(Header, Source, SegmentDefs) ->
               <<"-author('">>, file_author(), <<"').\n\n">>,
               <<"-include(\"">>, Header, <<"\").\n\n">>,
               <<
-                "-import(ehl7_field, [get_field/4, get_component/4, get_subcomponent/4, to_raw_value/3]).\n"
+                "-import(ehl7_field, [field/4, component/4, subcomponent/4, to_raw_value/3]).\n"
                 "-export([decode/1, encode/1, encode/2]).\n\n"
                 "-type encode_options() :: 'tuple' | 'list'.\n\n\n"
                 "%% @doc Decode a segment encoded as a tuple and convert it to a record\n"
@@ -170,7 +170,7 @@ codegen_element_decoder([{Name, Type, Index, DataType, Length} | Tail], Acc) ->
                   _ ->
                       <<",\n">>
               end,
-    Line = io_lib:format("~s = get_~s(~w, ~s, ~w, Segment)", [Name, Type, Index, DataType, Length]),
+    Line = io_lib:format("~s = ~s(~w, ~s, ~w, Segment)", [Name, Type, Index, DataType, Length]),
     codegen_element_decoder(Tail, [[Indentation, Line, LineEnd] | Acc]);
 codegen_element_decoder([], Acc) ->
     lists:reverse(Acc).

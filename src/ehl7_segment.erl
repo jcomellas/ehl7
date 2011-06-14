@@ -15,7 +15,7 @@
 
 -include("include/ehl7_segment.hrl").
 
--import(ehl7_field, [get_field/4, get_component/4, get_subcomponent/4, to_raw_value/3]).
+-import(ehl7_field, [field/4, component/4, subcomponent/4, to_raw_value/3]).
 -export([decode/1, encode/1, encode/2]).
 
 -type encode_options() :: 'tuple' | 'list'.
@@ -50,244 +50,244 @@ encode(Segment, Options) ->
 %% @doc Decode the AUT (Authorization information) segment
 decode(aut, Segment) ->
     #aut{
-        plan_id = get_component([1,1,1], string, 10, Segment),
-        plan_name = get_component([1,1,2], string, 20, Segment),
-        company_id = get_component([2,1,1], string, 6, Segment),
-        company_name = get_component([2,1,2], string, 30, Segment),
-        company_id_coding_system = get_component([2,1,3], string, 20, Segment),
-        start_date = get_field([4], date, 8, Segment),
-        end_date = get_field([5], date, 8, Segment),
-        authorization_id = get_component([6,1,1], string, 20, Segment),
-        requested_treatments = get_field([8], integer, 2, Segment),
-        authorized_treatments = get_field([9], integer, 2, Segment)
+        plan_id = component([1,1,1], string, 10, Segment),
+        plan_name = component([1,1,2], string, 20, Segment),
+        company_id = component([2,1,1], string, 6, Segment),
+        company_name = component([2,1,2], string, 30, Segment),
+        company_id_coding_system = component([2,1,3], string, 20, Segment),
+        start_date = field([4], date, 8, Segment),
+        end_date = field([5], date, 8, Segment),
+        authorization_id = component([6,1,1], string, 20, Segment),
+        requested_treatments = field([8], integer, 2, Segment),
+        authorized_treatments = field([9], integer, 2, Segment)
        };
 %% @doc Decode the DG1 (Diagnosis information) segment
 decode(dg1, Segment) ->
     #dg1{
-        set_id = get_field([1], integer, 4, Segment),
-        diagnosis_id = get_component([3,1,1], string, 20, Segment),
-        name = get_component([3,1,2], string, 32, Segment),
-        coding_system = get_component([3,1,3], string, 10, Segment),
-        diagnosis_type = get_field([6], string, 2, Segment)
+        set_id = field([1], integer, 4, Segment),
+        diagnosis_id = component([3,1,1], string, 20, Segment),
+        name = component([3,1,2], string, 32, Segment),
+        coding_system = component([3,1,3], string, 10, Segment),
+        diagnosis_type = field([6], string, 2, Segment)
        };
 %% @doc Decode the DSC (Continuation pointer) segment
 decode(dsc, Segment) ->
     #dsc{
-        continuation_pointer = get_field([1], string, 15, Segment)
+        continuation_pointer = field([1], string, 15, Segment)
        };
 %% @doc Decode the DSP (Display data) segment
 decode(dsp, Segment) ->
     #dsp{
-        set_id = get_field([1], integer, 4, Segment),
-        display_level = get_field([2], string, 4, Segment),
-        data_line = get_field([3], string, 40, Segment),
-        break_point = get_field([4], string, 2, Segment),
-        result_id = get_field([5], string, 20, Segment)
+        set_id = field([1], integer, 4, Segment),
+        display_level = field([2], string, 4, Segment),
+        data_line = field([3], string, 40, Segment),
+        break_point = field([4], string, 2, Segment),
+        result_id = field([5], string, 20, Segment)
        };
 %% @doc Decode the ERR (Error information) segment
 decode(err, Segment) ->
     #err{
-        segment_id = get_component([1,1,1], string, 3, Segment),
-        sequence = get_component([1,1,2], integer, 3, Segment),
-        field_pos = get_component([1,1,3], integer, 3, Segment),
-        error_code = get_subcomponent([1,1,4,1], string, 9, Segment),
-        error_text = get_subcomponent([1,1,4,2], string, 61, Segment)
+        segment_id = component([1,1,1], string, 3, Segment),
+        sequence = component([1,1,2], integer, 3, Segment),
+        field_pos = component([1,1,3], integer, 3, Segment),
+        error_code = subcomponent([1,1,4,1], string, 9, Segment),
+        error_text = subcomponent([1,1,4,2], string, 61, Segment)
        };
 %% @doc Decode the EVN (Event type) segment
 decode(evn, Segment) ->
     #evn{
-        recorded_date = get_field([2], date, 14, Segment),
-        planned_event_date = get_field([3], date, 14, Segment),
-        event_reason_code = get_field([4], string, 3, Segment)
+        recorded_date = field([2], date, 14, Segment),
+        planned_event_date = field([3], date, 14, Segment),
+        event_reason_code = field([4], string, 3, Segment)
        };
 %% @doc Decode the IN1 (Insurance) segment
 decode(in1, Segment) ->
     #in1{
-        set_id = get_field([1], integer, 4, Segment),
-        plan_id = get_component([2,1,1], string, 20, Segment),
-        plan_name = get_component([2,1,2], string, 30, Segment),
-        company_id = get_component([3,1,1], string, 6, Segment),
-        company_assigning_authority_id = get_subcomponent([3,1,4,1], string, 10, Segment),
-        company_id_type = get_subcomponent([3,1,4,5], string, 10, Segment),
-        authorization_number = get_component([14,1,1], string, 20, Segment),
-        auhtorization_date = get_component([14,1,2], date, 8, Segment)
+        set_id = field([1], integer, 4, Segment),
+        plan_id = component([2,1,1], string, 20, Segment),
+        plan_name = component([2,1,2], string, 30, Segment),
+        company_id = component([3,1,1], string, 6, Segment),
+        company_assigning_authority_id = subcomponent([3,1,4,1], string, 10, Segment),
+        company_id_type = subcomponent([3,1,4,5], string, 10, Segment),
+        authorization_number = component([14,1,1], string, 20, Segment),
+        auhtorization_date = component([14,1,2], date, 8, Segment)
        };
 %% @doc Decode the MSA (Message acknowledgment) segment
 decode(msa, Segment) ->
     #msa{
-        ack_code = get_field([1], string, 2, Segment),
-        message_control_id = get_field([2], string, 20, Segment),
-        error_code = get_component([6,1,1], string, 10, Segment),
-        error_text = get_component([6,1,2], string, 40, Segment)
+        ack_code = field([1], string, 2, Segment),
+        message_control_id = field([2], string, 20, Segment),
+        error_code = component([6,1,1], string, 10, Segment),
+        error_text = component([6,1,2], string, 40, Segment)
        };
 %% @doc Decode the MSH (Message header) segment
 decode(msh, Segment) ->
     #msh{
-        field_separator = get_field([1], string, 1, Segment),
-        encoding_characters = get_field([2], string, 4, Segment),
-        sending_application_id = get_component([3,1,1], string, 12, Segment),
-        sending_facility_id = get_component([4,1,1], string, 12, Segment),
-        sending_facility_universal_id = get_component([4,1,2], string, 20, Segment),
-        sending_facility_universal_id_type = get_component([4,1,3], string, 20, Segment),
-        receiving_application_id = get_component([5,1,1], string, 12, Segment),
-        receiving_facility_id = get_component([6,1,1], string, 12, Segment),
-        receiving_facility_universal_id = get_component([6,1,2], string, 20, Segment),
-        receiving_facility_universal_id_type = get_component([6,1,3], string, 20, Segment),
-        message_date = get_field([7], date, 14, Segment),
-        message_type = get_component([9,1,1], string, 3, Segment),
-        trigger_event = get_component([9,1,2], string, 3, Segment),
-        message_structure = get_component([9,1,3], string, 7, Segment),
-        message_control_id = get_field([10], string, 20, Segment),
-        processing_id = get_field([11], string, 3, Segment),
-        version = get_field([12], string, 8, Segment),
-        accept_ack_type = get_field([15], string, 2, Segment),
-        application_ack_type = get_field([16], string, 2, Segment),
-        country_code = get_field([17], string, 3, Segment)
+        field_separator = field([1], string, 1, Segment),
+        encoding_characters = field([2], string, 4, Segment),
+        sending_application_id = component([3,1,1], string, 12, Segment),
+        sending_facility_id = component([4,1,1], string, 12, Segment),
+        sending_facility_universal_id = component([4,1,2], string, 20, Segment),
+        sending_facility_universal_id_type = component([4,1,3], string, 20, Segment),
+        receiving_application_id = component([5,1,1], string, 12, Segment),
+        receiving_facility_id = component([6,1,1], string, 12, Segment),
+        receiving_facility_universal_id = component([6,1,2], string, 20, Segment),
+        receiving_facility_universal_id_type = component([6,1,3], string, 20, Segment),
+        message_date = field([7], date, 14, Segment),
+        message_type = component([9,1,1], string, 3, Segment),
+        trigger_event = component([9,1,2], string, 3, Segment),
+        message_structure = component([9,1,3], string, 7, Segment),
+        message_control_id = field([10], string, 20, Segment),
+        processing_id = field([11], string, 3, Segment),
+        version = field([12], string, 8, Segment),
+        accept_ack_type = field([15], string, 2, Segment),
+        application_ack_type = field([16], string, 2, Segment),
+        country_code = field([17], string, 3, Segment)
        };
 %% @doc Decode the NTE (Notes and comments) segment
 decode(nte, Segment) ->
     #nte{
-        set_id = get_field([1], integer, 4, Segment),
-        comment = get_field([3], string, 512, Segment)
+        set_id = field([1], integer, 4, Segment),
+        comment = field([3], string, 512, Segment)
        };
 %% @doc Decode the PID (Patient information) segment
 decode(pid, Segment) ->
     #pid{
-        set_id = get_field([1], integer, 4, Segment),
-        patient_id = get_component([3,1,1], string, 20, Segment),
-        assigning_authority_id = get_subcomponent([3,1,4,1], string, 6, Segment),
-        assigning_authority_universal_id = get_subcomponent([3,1,4,2], string, 6, Segment),
-        assigning_authority_universal_id_type = get_subcomponent([3,1,4,3], string, 10, Segment),
-        id_type = get_component([3,1,5], string, 2, Segment),
-        patient_document_id = get_component([3,2,1], string, 20, Segment),
-        patient_document_id_type = get_component([3,2,5], string, 2, Segment),
-        last_name = get_component([5,1,1], string, 25, Segment),
-        first_name = get_component([5,1,2], string, 25, Segment)
+        set_id = field([1], integer, 4, Segment),
+        patient_id = component([3,1,1], string, 20, Segment),
+        assigning_authority_id = subcomponent([3,1,4,1], string, 6, Segment),
+        assigning_authority_universal_id = subcomponent([3,1,4,2], string, 6, Segment),
+        assigning_authority_universal_id_type = subcomponent([3,1,4,3], string, 10, Segment),
+        id_type = component([3,1,5], string, 2, Segment),
+        patient_document_id = component([3,2,1], string, 20, Segment),
+        patient_document_id_type = component([3,2,5], string, 2, Segment),
+        last_name = component([5,1,1], string, 25, Segment),
+        first_name = component([5,1,2], string, 25, Segment)
        };
 %% @doc Decode the PR1 (Procedure information) segment
 decode(pr1, Segment) ->
     #pr1{
-        set_id = get_field([1], integer, 4, Segment),
-        procedure_id = get_component([3,1,1], string, 20, Segment),
-        procedure_name = get_component([3,1,2], string, 30, Segment),
-        coding_system = get_component([3,1,3], string, 4, Segment),
-        date = get_field([5], date, 14, Segment)
+        set_id = field([1], integer, 4, Segment),
+        procedure_id = component([3,1,1], string, 20, Segment),
+        procedure_name = component([3,1,2], string, 30, Segment),
+        coding_system = component([3,1,3], string, 4, Segment),
+        date = field([5], date, 14, Segment)
        };
 %% @doc Decode the PRD (Provider data) segment
 decode(prd, Segment) ->
     #prd{
-        role_id = get_component([1,1,1], string, 5, Segment),
-        role_name = get_component([1,1,2], string, 30, Segment),
-        role_coding_system = get_component([1,1,3], string, 7, Segment),
-        specialty_id = get_component([1,2,1], string, 5, Segment),
-        specialty_name = get_component([1,2,2], string, 30, Segment),
-        specialty_coding_system = get_component([1,2,3], string, 7, Segment),
-        last_name = get_component([2,1,1], string, 40, Segment),
-        first_name = get_component([2,1,2], string, 30, Segment),
-        street = get_component([3,1,1], string, 20, Segment),
-        other_designation = get_component([3,1,2], string, 20, Segment),
-        city = get_component([3,1,3], string, 30, Segment),
-        state = get_component([3,1,4], string, 1, Segment),
-        postal_code = get_component([3,1,5], string, 10, Segment),
-        country_code = get_component([3,1,6], string, 3, Segment),
-        address_type = get_component([3,1,7], string, 1, Segment),
-        provider_id = get_component([7,1,1], string, 15, Segment),
-        provider_id_type = get_subcomponent([7,1,2,1], string, 2, Segment),
-        provider_id_type_medical = get_subcomponent([7,1,2,2], string, 1, Segment),
-        provider_id_type_province = get_subcomponent([7,1,2,3], string, 1, Segment),
-        provider_id_alternate_qualifier = get_component([7,1,3], string, 8, Segment)
+        role_id = component([1,1,1], string, 5, Segment),
+        role_name = component([1,1,2], string, 30, Segment),
+        role_coding_system = component([1,1,3], string, 7, Segment),
+        specialty_id = component([1,2,1], string, 5, Segment),
+        specialty_name = component([1,2,2], string, 30, Segment),
+        specialty_coding_system = component([1,2,3], string, 7, Segment),
+        last_name = component([2,1,1], string, 40, Segment),
+        first_name = component([2,1,2], string, 30, Segment),
+        street = component([3,1,1], string, 20, Segment),
+        other_designation = component([3,1,2], string, 20, Segment),
+        city = component([3,1,3], string, 30, Segment),
+        state = component([3,1,4], string, 1, Segment),
+        postal_code = component([3,1,5], string, 10, Segment),
+        country_code = component([3,1,6], string, 3, Segment),
+        address_type = component([3,1,7], string, 1, Segment),
+        provider_id = component([7,1,1], string, 15, Segment),
+        provider_id_type = subcomponent([7,1,2,1], string, 2, Segment),
+        provider_id_type_medical = subcomponent([7,1,2,2], string, 1, Segment),
+        provider_id_type_province = subcomponent([7,1,2,3], string, 1, Segment),
+        provider_id_alternate_qualifier = component([7,1,3], string, 8, Segment)
        };
 %% @doc Decode the PV1 (Patient visit) segment
 decode(pv1, Segment) ->
     #pv1{
-        set_id = get_field([1], string, 4, Segment),
-        patient_class = get_field([2], string, 1, Segment),
-        patient_point_of_care = get_component([3,1,1], string, 10, Segment),
-        patient_location_facility = get_component([3,1,4], string, 21, Segment),
-        admission_type = get_field([4], string, 34, Segment),
-        attending_doctor_id = get_component([7,1,1], string, 20, Segment),
-        attending_doctor_last_name = get_component([7,1,2], string, 25, Segment),
-        attending_doctor_first_name = get_component([7,1,3], string, 25, Segment),
-        attending_doctor_assigning_authority = get_component([7,1,9], string, 21, Segment),
-        referring_doctor_id = get_component([8,1,1], string, 20, Segment),
-        referring_doctor_last_name = get_component([8,1,2], string, 25, Segment),
-        referring_doctor_first_name = get_component([8,1,3], string, 25, Segment),
-        referring_doctor_assigning_authority = get_component([8,1,9], string, 21, Segment),
-        hospital_service = get_field([10], string, 99, Segment),
-        readmission_indicator = get_field([13], string, 2, Segment),
-        discharge_diposition = get_field([36], string, 3, Segment),
-        admit_date = get_field([44], date, 12, Segment),
-        discharge_date = get_field([45], date, 12, Segment),
-        visit_indicator = get_field([51], string, 1, Segment)
+        set_id = field([1], string, 4, Segment),
+        patient_class = field([2], string, 1, Segment),
+        patient_point_of_care = component([3,1,1], string, 10, Segment),
+        patient_location_facility = component([3,1,4], string, 21, Segment),
+        admission_type = field([4], string, 34, Segment),
+        attending_doctor_id = component([7,1,1], string, 20, Segment),
+        attending_doctor_last_name = component([7,1,2], string, 25, Segment),
+        attending_doctor_first_name = component([7,1,3], string, 25, Segment),
+        attending_doctor_assigning_authority = component([7,1,9], string, 21, Segment),
+        referring_doctor_id = component([8,1,1], string, 20, Segment),
+        referring_doctor_last_name = component([8,1,2], string, 25, Segment),
+        referring_doctor_first_name = component([8,1,3], string, 25, Segment),
+        referring_doctor_assigning_authority = component([8,1,9], string, 21, Segment),
+        hospital_service = field([10], string, 99, Segment),
+        readmission_indicator = field([13], string, 2, Segment),
+        discharge_diposition = field([36], string, 3, Segment),
+        admit_date = field([44], date, 12, Segment),
+        discharge_date = field([45], date, 12, Segment),
+        visit_indicator = field([51], string, 1, Segment)
        };
 %% @doc Decode the PV2 (Patient visit - additional information) segment
 decode(pv2, Segment) ->
     #pv2{
-        transfer_reason_id = get_component([4,1,1], string, 20, Segment)
+        transfer_reason_id = component([4,1,1], string, 20, Segment)
        };
 %% @doc Decode the QAK (Query acknowledgment) segment
 decode(qak, Segment) ->
     #qak{
-        query_tag = get_field([1], string, 32, Segment),
-        query_response_status = get_field([2], string, 4, Segment),
-        query_id = get_component([3,1,1], string, 14, Segment),
-        query_name = get_component([3,1,2], string, 30, Segment)
+        query_tag = field([1], string, 32, Segment),
+        query_response_status = field([2], string, 4, Segment),
+        query_id = component([3,1,1], string, 14, Segment),
+        query_name = component([3,1,2], string, 30, Segment)
        };
 %% @doc Decode the QPD_Q15 (Query parameter definition -- procedure totals query) segment
 decode(qpd_q15, Segment) ->
     #qpd_q15{
-        query_id = get_component([1,1,1], string, 20, Segment),
-        query_name = get_component([1,1,2], string, 30, Segment),
-        query_tag = get_field([2], string, 32, Segment),
-        provider_id = get_component([3,1,1], string, 15, Segment),
-        provider_id_type = get_component([3,1,2], string, 4, Segment),
-        start_date = get_field([4], date, 12, Segment),
-        end_date = get_field([5], date, 12, Segment),
-        procedure_id = get_component([6,1,1], string, 30, Segment),
-        procedure_coding_system = get_component([6,1,2], string, 8, Segment),
-        authorizer_id = get_component([7,1,1], string, 6, Segment)
+        query_id = component([1,1,1], string, 20, Segment),
+        query_name = component([1,1,2], string, 30, Segment),
+        query_tag = field([2], string, 32, Segment),
+        provider_id = component([3,1,1], string, 15, Segment),
+        provider_id_type = component([3,1,2], string, 4, Segment),
+        start_date = field([4], date, 12, Segment),
+        end_date = field([5], date, 12, Segment),
+        procedure_id = component([6,1,1], string, 30, Segment),
+        procedure_coding_system = component([6,1,2], string, 8, Segment),
+        authorizer_id = component([7,1,1], string, 6, Segment)
        };
 %% @doc Decode the RCP (Response control parameter) segment
 decode(rcp, Segment) ->
     #rcp{
-        query_priority = get_field([1], string, 1, Segment),
-        response_limit = get_component([2,1,1], integer, 10, Segment),
-        response_unit = get_subcomponent([2,1,2,1], string, 2, Segment),
-        response_modality_id = get_component([3,1,1], string, 10, Segment),
-        execution_date = get_field([4], date, 12, Segment),
-        sort_by = get_field([6], string, 512, Segment)
+        query_priority = field([1], string, 1, Segment),
+        response_limit = component([2,1,1], integer, 10, Segment),
+        response_unit = subcomponent([2,1,2,1], string, 2, Segment),
+        response_modality_id = component([3,1,1], string, 10, Segment),
+        execution_date = field([4], date, 12, Segment),
+        sort_by = field([6], string, 512, Segment)
        };
 %% @doc Decode the RF1 (Referral information) segment
 decode(rf1, Segment) ->
     #rf1{
-        referral_status_id = get_component([1,1,1], string, 5, Segment),
-        referral_status_description = get_component([1,1,2], string, 15, Segment),
-        referral_type_id = get_component([3,1,1], string, 5, Segment),
-        referral_type_description = get_component([3,1,2], string, 15, Segment),
-        originating_referral_id = get_component([6,1,1], string, 15, Segment),
-        effective_date = get_field([7], date, 12, Segment),
-        expiration_date = get_field([8], date, 12, Segment),
-        process_date = get_field([9], date, 12, Segment),
-        referral_reason_id = get_component([10,1,1], string, 21, Segment)
+        referral_status_id = component([1,1,1], string, 5, Segment),
+        referral_status_description = component([1,1,2], string, 15, Segment),
+        referral_type_id = component([3,1,1], string, 5, Segment),
+        referral_type_description = component([3,1,2], string, 15, Segment),
+        originating_referral_id = component([6,1,1], string, 15, Segment),
+        effective_date = field([7], date, 12, Segment),
+        expiration_date = field([8], date, 12, Segment),
+        process_date = field([9], date, 12, Segment),
+        referral_reason_id = component([10,1,1], string, 21, Segment)
        };
 %% @doc Decode the ZAU (Procedure authorization information) segment
 decode(zau, Segment) ->
     #zau{
-        prev_authorization_id = get_component([1,1,1], string, 15, Segment),
-        payor_control_id = get_component([2,1,1], string, 15, Segment),
-        authorization_status = get_component([3,1,1], string, 4, Segment),
-        authorization_status_text = get_component([3,1,2], string, 15, Segment),
-        pre_authorization_id = get_component([4,1,1], string, 15, Segment),
-        pre_authorization_date = get_field([5], string, 8, Segment),
-        copay = get_subcomponent([6,1,1,1], float, 10, Segment),
-        copay_currency = get_subcomponent([6,1,1,2], string, 10, Segment)
+        prev_authorization_id = component([1,1,1], string, 15, Segment),
+        payor_control_id = component([2,1,1], string, 15, Segment),
+        authorization_status = component([3,1,1], string, 4, Segment),
+        authorization_status_text = component([3,1,2], string, 15, Segment),
+        pre_authorization_id = component([4,1,1], string, 15, Segment),
+        pre_authorization_date = field([5], string, 8, Segment),
+        copay = subcomponent([6,1,1,1], float, 10, Segment),
+        copay_currency = subcomponent([6,1,1,2], string, 10, Segment)
        };
 %% @doc Decode the ZIN (Additional insurance information) segment
 decode(zin, Segment) ->
     #zin{
-        eligibility_indicator = get_field([1], string, 1, Segment),
-        patient_vat_status = get_component([2,1,1], string, 4, Segment),
-        patient_vat_status_text = get_component([2,1,2], string, 7, Segment)
+        eligibility_indicator = field([1], string, 1, Segment),
+        patient_vat_status = component([2,1,1], string, 4, Segment),
+        patient_vat_status_text = component([2,1,2], string, 7, Segment)
        };
 decode(_SegmentId, Segment) ->
     {error, {unknown_segment_id, element(1, Segment)}}.

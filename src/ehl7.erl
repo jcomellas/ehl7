@@ -11,9 +11,9 @@
 -author('Juan Jose Comellas <juanjo@comellas.org>').
 
 %% API
--export([decode/2, encode/2, raw_encode/1]).
+-export([decode/1, decode/2, encode/1, encode/2]).
 -export([segment/2, segment/3, segment_count/2]).
--export([field/2, field/4]).
+-export([field/2, field/4, repetition/2, repetition/4, component/2, component/4, subcomponent/2, subcomponent/4]).
 -export([dump/1]).
 
 -export_type([raw_msg/0, msg/0, raw_segment_id/0, segment_id/0, raw_segment/0, segment/0,
@@ -45,11 +45,15 @@ init() ->
     erlang:load_nif("priv/ehl7", 0).
 
 
+-spec decode(Buffer :: binary()) -> {ok, raw_msg()} | {error, Reason :: any()}.
+decode(Buffer) ->
+    decode(Buffer, []).
+
 -spec decode(Buffer :: binary(), [decode_option()]) -> {ok, raw_msg()} | {error, Reason :: any()}.
 decode(Buffer, Options) ->
     case raw_decode(Buffer) of
         [] ->
-            {error, {invalid_hl7_msg, Buffer}};
+            {error, {invalid_hl7_message, Buffer}};
         RawMsg when is_list(RawMsg) ->
             case lists:member(raw, Options) of
                 true ->
@@ -61,6 +65,10 @@ decode(Buffer, Options) ->
             Error
     end.
 
+
+-spec encode(Msg :: msg()) -> {ok, iolist()} | {error, Reason :: any()}.
+encode(Msg) ->
+    encode(Msg, []).
 
 -spec encode(Msg :: msg(), [encode_option()]) -> {ok, iolist()} | {error, Reason :: any()}.
 encode(Msg, Options) ->
@@ -120,12 +128,42 @@ segment_count(_SegmentId, [], Count) ->
 
 -spec field(field_index(), field_data_type(), field_length(), raw_segment()) -> field() | undefined.
 field(Index, DataType, Length, Segment) ->
-    ehl7_field:get_field(Index, DataType, Length, Segment).
+    ehl7_field:field(Index, DataType, Length, Segment).
 
 
 -spec field(field_index(), raw_segment()) -> raw_field() | undefined.
 field(Index, Segment) ->
-    ehl7_field:get_field(Index, Segment).
+    ehl7_field:field(Index, Segment).
+
+
+-spec repetition(field_index(), field_data_type(), field_length(), raw_segment()) -> field() | undefined.
+repetition(Index, DataType, Length, Segment) ->
+    ehl7_field:repetition(Index, DataType, Length, Segment).
+
+
+-spec repetition(field_index(), raw_segment()) -> raw_field() | undefined.
+repetition(Index, Segment) ->
+    ehl7_field:repetition(Index, Segment).
+
+
+-spec component(field_index(), field_data_type(), field_length(), raw_segment()) -> field() | undefined.
+component(Index, DataType, Length, Segment) ->
+    ehl7_field:component(Index, DataType, Length, Segment).
+
+
+-spec component(field_index(), raw_segment()) -> raw_field() | undefined.
+component(Index, Segment) ->
+    ehl7_field:component(Index, Segment).
+
+
+-spec subcomponent(field_index(), field_data_type(), field_length(), raw_segment()) -> field() | undefined.
+subcomponent(Index, DataType, Length, Segment) ->
+    ehl7_field:subcomponent(Index, DataType, Length, Segment).
+
+
+-spec subcomponent(field_index(), raw_segment()) -> raw_field() | undefined.
+subcomponent(Index, Segment) ->
+    ehl7_field:subcomponent(Index, Segment).
 
 
 -spec dump(binary()) -> binary().
