@@ -10,8 +10,7 @@
 -module(ehl7_segment_def).
 -author('Juan Jose Comellas <jcomellas@erlar.com>').
 
--export([main/1]).
--export([codegen/1, get_segment_defs/0]).
+-export([codegen/0, codegen/1, get_segment_defs/0]).
 
 -type segment_id() :: binary().
 -type element_name() :: atom().
@@ -22,46 +21,39 @@
 -type element_def() :: {element_name(), element_type(), element_index(), element_data_type(), non_neg_integer()}.
 -type segment_def() :: {segment_id(), Comment :: binary(), [element_def()]}.
 
+-type codegen_option() :: [{header, Header :: string()} | {source, Source :: string()} | verbose].
+
+
+-define(DEFAULT_HEADER_FILE, "include/ehl7_segment.hrl").
+-define(DEFAULT_SOURCE_FILE, "src/ehl7_segment.erl").
+
 -define(START_BRACE, "[").
 -define(END_BRACE, "]").
 
 
-main(Args) ->
-    OptSpecList = option_spec_list(),
-    case getopt:parse(OptSpecList, Args) of
-        {ok, {Options, _NonOptArgs}} ->
-            case lists:member(help, Options) of
-                true ->
-                    getopt:usage(OptSpecList, escript:script_name());
-                false ->
-                    codegen(Options)
-            end;
-        {error, {Reason, Data}} ->
-            io:format("Error: ~s ~p~n~n", [Reason, Data]),
-            getopt:usage(OptSpecList, escript:script_name())
-    end.
+-spec codegen() ->ok.
+codegen() ->
+    codegen([]).
 
 
-option_spec_list() ->
-    [
-     %% {Name,     ShortOpt,  LongOpt,       ArgSpec,                      HelpMsg}
-     {help,        $?,        "help",        undefined,
-      "Show the program options"},
-     {verbose,     $v,        "verbose",     {boolean, false},
-      "Verbose output"},
-     {header,      $h,        "hrl",         {string, "include/ehl7_segment.hrl"},
-      "File where the generated header will be saved to"},
-     {source,      $e,        "erl",         {string, "src/ehl7_segment.erl"},
-      "File where the generated code will be saved to"}
-    ].
-
-
+-spec codegen(codegen_option()) -> ok.
 codegen(Options) ->
-    Header = proplists:get_value(header, Options),
-    Source = proplists:get_value(source, Options),
-    io:format("Generating header in file ~s~n", [Header]),
+    Header = proplists:get_value(header, Options, ?DEFAULT_HEADER_FILE),
+    Source = proplists:get_value(source, Options, ?DEFAULT_SOURCE_FILE),
+    Verbose = lists:member(verbose, Options),
+    case Verbose of
+        true ->
+            io:format("Generating header in file ~s~n", [Header]);
+        false ->
+            void
+    end,
     file:write_file(Header, codegen_segment_header(Header, Source)),
-    io:format("Generating source in file ~s~n", [Source]),
+    case Verbose of
+        true ->
+            io:format("Generating source in file ~s~n", [Source]);
+        false ->
+            void
+    end,
     file:write_file(Source, codegen_segment_source(Header, Source)).
 
 

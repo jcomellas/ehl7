@@ -16,6 +16,9 @@
 
 -export([main/1]).
 
+-define(DEFAULT_HEADER_FILE, "include/ehl7_segment.hrl").
+-define(DEFAULT_SOURCE_FILE, "src/ehl7_segment.erl").
+
 
 main(Args) ->
     OptSpecList = option_spec_list(),
@@ -35,13 +38,9 @@ main(Args) ->
 
 option_spec_list() ->
     [
-     %% {Name,     ShortOpt,  LongOpt,       ArgSpec,                      HelpMsg}
-     {help,        $?,        "help",        undefined,
-      "Show the program options"},
-     {verbose,     $v,        "verbose",     {boolean, false},
-      "Verbose output"},
-     {header,      $h,        "hrl",         {string, "include/ehl7_segment.hrl"},
-      "File where the generated header will be saved to"},
-     {source,      $e,        "erl",         {string, "src/ehl7_segment.erl"},
-      "File where the generated code will be saved to"}
+     %% {Name,     ShortOpt,  LongOpt,       ArgSpec,                        HelpMsg}
+     {help,        $?,        "help",        undefined,                      "Show the program options"},
+     {verbose,     $v,        "verbose",     undefined,                      "Verbose output"},
+     {header,      $h,        "hrl",         {string, ?DEFAULT_HEADER_FILE}, "File where the generated header will be saved to"},
+     {source,      $e,        "erl",         {string, ?DEFAULT_SOURCE_FILE}, "File where the generated code will be saved to"}
     ].
