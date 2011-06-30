@@ -16,6 +16,7 @@
 
 -export([main/1]).
 
+-define(DEFAULT_SEGMENT_DEF_FILE, "src/ehl7_segment_def.eon").
 -define(DEFAULT_HEADER_FILE, "include/ehl7_segment.hrl").
 -define(DEFAULT_SOURCE_FILE, "src/ehl7_segment.erl").
 
@@ -41,6 +42,7 @@ option_spec_list() ->
      %% {Name,     ShortOpt,  LongOpt,       ArgSpec,                        HelpMsg}
      {help,        $?,        "help",        undefined,                      "Show the program options"},
      {verbose,     $v,        "verbose",     undefined,                      "Verbose output"},
+     {segment_def, $d,        "segment-def", {string, ?DEFAULT_HEADER_FILE}, "File with the HL7 segment definitions"},
      {header,      $h,        "hrl",         {string, ?DEFAULT_HEADER_FILE}, "File where the generated header will be saved to"},
      {source,      $e,        "erl",         {string, ?DEFAULT_SOURCE_FILE}, "File where the generated code will be saved to"}
     ].
