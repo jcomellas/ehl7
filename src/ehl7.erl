@@ -21,44 +21,51 @@
 
 -on_load(init/0).
 
--type raw_msg() :: [tuple()].
--type msg() :: [tuple()].
--type raw_segment_id() :: binary().
--type segment_id() :: atom().
--type raw_segment() :: tuple().
--type segment() :: tuple().
--type raw_field() :: binary().
--type field() :: tuple() | binary() | integer() | calendar:date() | calendar:datetime() | float().
--type field_index() :: non_neg_integer() | [non_neg_integer()].
--type field_data_type() :: 'string' | 'integer' | 'date' | 'float'.
--type field_length() :: non_neg_integer().
--type decode_option() :: 'raw'.
--type encode_option() :: 'raw' | 'disable_simplify'.
+-type field_index()                             :: non_neg_integer() | [non_neg_integer()].
+-type field_data_type()                         :: string | integer | date | float.
+-type field_length()                            :: non_neg_integer().
+
+-type field()                                   :: binary() | integer() | calendar:date() | calendar:datetime() | float() | undefined.
+-type segment_id()                              :: atom().
+-type segment()                                 :: tuple(segment_id() | field()).
+-type msg()                                     :: [segment()].
+
+-type raw_field()                               :: binary() | tuple() | undefined.
+-type raw_segment_id()                          :: binary().
+-type raw_segment()                             :: tuple(raw_segment_id() | raw_field()).
+-type raw_msg()                                 :: [raw_segment()].
+
+-type buffer()                                  :: binary().
+
+-type decode_option()                           :: {format, raw | record}.
+-type encode_option()                           :: {format, raw | record} | {simplify, boolean()}.
+
+-type error()                                   :: {error, Reason :: term()}.
 
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 
--spec init() -> ok | {error, Reason :: any()}.
+-spec init() -> ok | error().
 init() ->
     erlang:load_nif("priv/ehl7", 0).
 
 
--spec decode(Buffer :: binary()) -> {ok, raw_msg()} | {error, Reason :: any()}.
+-spec decode(buffer()) -> msg() | error().
 decode(Buffer) ->
-    decode(Buffer, []).
+    decode(Buffer, [{format, record}, {simplify, true}]).
 
--spec decode(Buffer :: binary(), [decode_option()]) -> {ok, raw_msg()} | {error, Reason :: any()}.
+-spec decode(buffer(), [decode_option()]) -> msg() | raw_msg() | error().
 decode(Buffer, Options) ->
     case raw_decode(Buffer) of
         [] ->
             {error, {invalid_hl7_message, Buffer}};
         RawMsg when is_list(RawMsg) ->
-            case lists:member(raw, Options) of
-                true ->
+            case proplists:get_value(format, Options, record) of
+                raw  ->
                     RawMsg;
-                false ->
+                record ->
                     decode_msg(RawMsg, [])
             end;
         {error, _Reason} = Error ->
@@ -66,22 +73,22 @@ decode(Buffer, Options) ->
     end.
 
 
--spec encode(Msg :: msg()) -> {ok, iolist()} | {error, Reason :: any()}.
+-spec encode(msg()) -> buffer() | error().
 encode(Msg) ->
     encode(Msg, []).
 
--spec encode(Msg :: msg(), [encode_option()]) -> {ok, iolist()} | {error, Reason :: any()}.
+-spec encode(msg() | raw_msg(), [encode_option()]) -> binary() | error().
 encode(Msg, Options) ->
     RawMsg =
-        case lists:member(raw, Options) of
-            true ->
+        case proplists:get_value(format, Options, record) of
+            raw ->
                 Msg;
-            false ->
-                case lists:member(disable_simplify, Options) of
+            record ->
+                case proplists:get_value(simplify, Options, true) of
                     true ->
-                        encode_msg(Msg, []);
+                        encode_and_simplify_msg(Msg, []);
                     false ->
-                        encode_and_simplify_msg(Msg, [])
+                        encode_msg(Msg, [])
                 end
         end,
     raw_encode(RawMsg).
@@ -97,7 +104,7 @@ segment(SegmentId, Msg) ->
     end.
 
 
--spec segment(segment_id(), raw_msg(), Repetition :: non_neg_integer()) -> raw_segment() | undefined.
+-spec segment(segment_id(), msg() | raw_msg(), Repetition :: non_neg_integer()) -> segment() | raw_segment() | undefined.
 segment(SegmentId, [Segment | Tail], Repetition) ->
     case element(1, Segment) of
         SegmentId when Repetition =:= 1 ->
@@ -111,7 +118,7 @@ segment(_SegmentId, [], _Repetition) ->
     undefined.
 
 
--spec segment_count(raw_segment_id() | segment_id(), raw_msg() | msg()) -> non_neg_integer().
+-spec segment_count(segment_id() | raw_segment_id(), msg() | raw_msg()) -> non_neg_integer().
 segment_count(SegmentId, Msg) ->
     segment_count(SegmentId, Msg, 0).
 
@@ -180,12 +187,12 @@ dump(<<>>, Acc) ->
 %%% Internal functions
 %%%===================================================================
 
--spec raw_decode(Buffer :: binary()) -> {ok, raw_msg()} | {error, Reason :: any()}.
+-spec raw_decode(buffer()) -> raw_msg() | error().
 raw_decode(_Buffer) ->
     nif_error(?LINE).
 
 
--spec raw_encode(Msg :: raw_msg()) -> {ok, iolist()} | {error, Reason :: any()}.
+-spec raw_encode(raw_msg()) -> buffer() | error().
 raw_encode(_Msg) ->
     nif_error(?LINE).
 
