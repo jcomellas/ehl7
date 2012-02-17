@@ -12,29 +12,25 @@ compile:
 	@rebar compile
 
 doc:
-	@rebar doc
+	@rebar skip_deps=true doc
 
 clean:
+	@rebar skip_deps=true clean
+
+depclean:
 	@rebar clean
 
 distclean:
 	@rebar delete-deps
 
-build-plt: compile
-	@rebar build-plt
-
-check-plt: compile
-	@rebar check-plt
-
 dialyze: compile
-	@rebar dialyze
+	@dialyzer -r .
 
 test:
-	@rebar eunit
+	@rebar skip_deps=true eunit
 
-console: compile
+console:
 	$(ERL) -sname $(APPLICATION) $(EPATH)
 
 test-console: test
 	$(ERL) -sname $(APPLICATION)_test $(TEST_EPATH)
-
