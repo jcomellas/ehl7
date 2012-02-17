@@ -33,7 +33,7 @@
 -type field_data_type() :: 'string' | 'integer' | 'date' | 'float'.
 -type field_length() :: non_neg_integer().
 -type decode_option() :: 'raw'.
--type encode_option() :: 'raw' | 'no_simplify'.
+-type encode_option() :: 'raw' | 'disable_simplify'.
 
 
 %%%===================================================================
@@ -77,7 +77,7 @@ encode(Msg, Options) ->
             true ->
                 Msg;
             false ->
-                case lists:member(no_simplify, Options) of
+                case lists:member(disable_simplify, Options) of
                     true ->
                         encode_msg(Msg, []);
                     false ->
