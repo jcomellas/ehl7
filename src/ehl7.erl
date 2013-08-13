@@ -1,11 +1,8 @@
 %%%-------------------------------------------------------------------
-%%% @author Juan Jose Comellas <jcomellas@erlar.com>
+%%% @author Juan Jose Comellas <juanjo@comellas.org>
 %%% @copyright (C) 2011 Juan Jose Comellas
 %%% @doc Module that parses and generates HL7 messages.
 %%% @end
-%%% This source file is subject to the New BSD License. You should have received
-%%% a copy of the New BSD license with this software. If not, it can be
-%%% retrieved from: http://www.opensource.org/licenses/bsd-license.php
 %%%-------------------------------------------------------------------
 -module(ehl7).
 -author('Juan Jose Comellas <juanjo@comellas.org>').
@@ -20,6 +17,8 @@
               raw_field/0, field/0, field_index/0, field_data_type/0, field_length/0]).
 
 -on_load(init/0).
+
+-define(APP, ehl7).
 
 -type field_index()                             :: non_neg_integer() | [non_neg_integer()].
 -type field_data_type()                         :: string | integer | date | float.
@@ -49,7 +48,11 @@
 
 -spec init() -> ok | error().
 init() ->
-    erlang:load_nif("priv/ehl7", 0).
+    PrivDir = case code:priv_dir(?APP) of
+                  {error, bad_name} -> "priv";
+                  PrivDir1          -> PrivDir1
+              end,
+    erlang:load_nif(filename:join(PrivDir, "ehl7"), 0).
 
 
 -spec decode(buffer()) -> msg() | error().
