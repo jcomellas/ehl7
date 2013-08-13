@@ -3,7 +3,7 @@
 %%! -sname ehl7_codegen -pz ebin deps/getopt/ebin deps/bstr/ebin
 
 %%%-------------------------------------------------------------------
-%%% @author Juan Jose Comellas <jcomellas@erlar.com>
+%%% @author Juan Jose Comellas <juanjo@comellas.org>
 %%% @copyright (C) 2011 Juan Jose Comellas
 %%% @doc Module that generates code to decode/encode HL7 segments.
 %%% @end
@@ -12,7 +12,7 @@
 %%% retrieved from: http://www.opensource.org/licenses/bsd-license.php
 %%%-------------------------------------------------------------------
 -module(ehl7_codegen).
--author('Juan Jose Comellas <jcomellas@erlar.com>').
+-author('Juan Jose Comellas <juanjo@comellas.org>').
 
 -export([main/1]).
 

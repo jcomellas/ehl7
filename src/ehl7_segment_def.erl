@@ -5,7 +5,7 @@
 %%% @end
 %%%-------------------------------------------------------------------
 -module(ehl7_segment_def).
--author('Juan Jose Comellas <jcomellas@erlar.com>').
+-author('Juan Jose Comellas <juanjo@comellas.org>').
 
 -export([codegen/0, codegen/1, get_segment_defs/1]).
 
