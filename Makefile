@@ -4,33 +4,36 @@ ERL := erl
 EPATH := -pa ebin -pz deps/*/ebin
 TEST_EPATH := -pa .eunit
 
-.PHONY: all doc clean test
+.PHONY: all clean compile console depclean deps distclean dialyze doc test test-compile
 
 all: compile
-
-compile:
-	@rebar compile
-
-doc:
-	@rebar skip_deps=true doc
 
 clean:
 	@rebar skip_deps=true clean
 
-depclean:
-	@rebar clean
-
-distclean:
-	@rebar delete-deps
-
-dialyze: compile
-	@dialyzer -r .
-
-test:
-	@rebar skip_deps=true eunit
+compile:
+	@rebar compile
 
 console:
 	$(ERL) -sname $(APPLICATION) $(EPATH)
 
-test-console: test
+depclean:
+	@rebar clean
+
+deps:
+	@rebar get-deps
+
+dialyze: compile
+	@dialyzer -r .
+
+distclean:
+	@rebar delete-deps
+
+doc:
+	@rebar skip_deps=true doc
+
+test:
+	@rebar skip_deps=true eunit
+
+test-console:
 	$(ERL) -sname $(APPLICATION)_test $(TEST_EPATH)
