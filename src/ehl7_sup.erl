@@ -1,12 +1,8 @@
 %%%-------------------------------------------------------------------
-%%% @author Juan Jose Comellas <jcomellas@erlar.com>
+%%% @author Juan Jose Comellas <juanjo@comellas.org>
 %%% @copyright (C) 2011 Juan Jose Comellas
 %%% @doc Erlang HL7 parser supervisor.
 %%% @end
-%%%
-%%% This source file is subject to the New BSD License. You should have received
-%%% a copy of the New BSD license with this software. If not, it can be
-%%% retrieved from: http://www.opensource.org/licenses/bsd-license.php
 %%%-------------------------------------------------------------------
 -module(ehl7_sup).
 -author('Juan Jose Comellas <juanjo@comellas.org>').
