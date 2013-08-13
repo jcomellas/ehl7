@@ -103,7 +103,7 @@ get_subelement([], Element) ->
 -spec from_raw_value(ehl7:raw_field() | undefined, ehl7:field_data_type(), ehl7:field_length()) -> ehl7:field().
 from_raw_value(undefined, _DataType, _Length) ->
     undefined;
-from_raw_value(Value, string, _Length) ->
+from_raw_value(Value, string, _Length) when is_binary(Value) ->
     Value;
 from_raw_value(<<>>, _DataType, _Length) ->
     undefined;
@@ -122,6 +122,7 @@ from_raw_value(Value, float, _Length) ->
         true ->
             binary_to_float(Value);
         false ->
+            %% Accept integer value in float fields
             float(binary_to_integer(Value))
     end.
 
@@ -129,7 +130,7 @@ from_raw_value(Value, float, _Length) ->
 -spec to_raw_value(ehl7:field() | undefined, ehl7:field_data_type(), ehl7:field_length()) -> ehl7:raw_field().
 to_raw_value(Value, _DataType, _Length) when Value =:= undefined; Value =:= <<>> ->
     Value;
-to_raw_value(Value, string, _Length) ->
+to_raw_value(Value, string, _Length) when is_binary(Value) ->
     Value;
 to_raw_value(Value, integer, _Length) ->
     integer_to_binary(Value);
