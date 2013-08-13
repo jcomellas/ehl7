@@ -27,12 +27,12 @@ dialyze: compile
 	@dialyzer -r .
 
 distclean:
-	@rebar delete-deps
+	@rebar clean delete-deps
 
 doc:
 	@rebar skip_deps=true doc
 
-test:
+test: compile
 	@rebar skip_deps=true eunit
 
 test-console:
