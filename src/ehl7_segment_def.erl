@@ -320,7 +320,7 @@ file_copyright() ->
     <<"(C) 2011 Juan Jose Comellas">>.
 
 
--spec file_header() -> binary().
+-spec file_header() -> iolist().
 file_header() ->
     [
      <<
@@ -340,7 +340,7 @@ file_header() ->
     ].
 
 
--spec get_segment_defs(SegmentDefFile :: string()) -> [segment_def()].
+-spec get_segment_defs(SegmentDefFile :: string()) -> {ok, [segment_def()]} | {error, Reason :: term()}.
 get_segment_defs(SegmentDefFile) ->
     case file:consult(SegmentDefFile) of
         {ok, _SegmentDefs} = Result ->
