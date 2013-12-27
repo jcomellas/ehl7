@@ -49,8 +49,12 @@
 -spec init() -> ok | error().
 init() ->
     PrivDir = case code:priv_dir(?APP) of
-                  {error, bad_name} -> "priv";
-                  PrivDir1          -> PrivDir1
+                  {error, bad_name} ->
+                      EbinDir = filename:dirname(code:which(?MODULE)),
+                      AppPath = filename:dirname(EbinDir),
+                      filename:join(AppPath, "priv");
+                  Path ->
+                      Path
               end,
     erlang:load_nif(filename:join(PrivDir, "ehl7"), 0).
 
